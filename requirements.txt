@@ -1,0 +1,9 @@
+# SIH26002 — Core Backend Requirements (Phase 0 Foundation)
+Django>=5.1,<5.2
+djangorestframework>=3.15.0
+djangorestframework-simplejwt>=5.3.0
+django-cors-headers>=4.4.0
+python-dotenv>=1.0.0
+Pillow>=10.4.0
+drf-spectacular>=0.27.0
+psycopg2-binary>=2.9.9

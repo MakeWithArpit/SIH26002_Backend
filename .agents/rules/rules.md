@@ -1,0 +1,136 @@
+# SIH26002 — Backend Development Rules & Guidelines
+
+This document defines the strict development standards, library whitelist, architectural boundaries, and error handling patterns for the **SIH26002 Backend** (Smart India Hackathon 2026).
+
+---
+
+## 1. Core Principles (Ponytail Philosophy)
+
+1. **Modular Monolith Over Microservices:** Build a single, well-structured Django project. Never break the MVP into microservices or separate AI services.
+2. **Hackathon Demo First:** Prioritize the P0 Core Intelligence Pipeline:
+   $$\text{Photo Analysis} \rightarrow \text{Risk Calculation} \rightarrow \text{Route Re-ranking} \rightarrow \text{ETA Prediction}$$
+3. **YAGNI (You Aren't Gonna Need It):** No speculative abstractions. No generic repository layers, event buses, or hand-rolled caching frameworks.
+4. **Fewest Files & Shortest Working Diff:** Use standard Django patterns and Python standard library before writing custom scaffolding.
+
+---
+
+## 2. Library Whitelist & Tech Stack
+
+Only install dependencies from this whitelist. Adding unapproved libraries requires explicit discussion.
+
+### ✅ Allowed Dependencies
+
+| Layer | Approved Library | Purpose |
+|---|---|---|
+| **Web Framework** | `django` (>= 5.0) | Core web framework |
+| **REST API** | `djangorestframework` | Serializers, API views, viewsets |
+| **Authentication** | `djangorestframework-simplejwt` | JWT access/refresh tokens |
+| **CORS** | `django-cors-headers` | Cross-origin requests for web/mobile |
+| **Database & GIS** | `psycopg2-binary` or `psycopg[binary]`, `GeoDjango` | PostgreSQL + PostGIS integration |
+| **Task Queue & Cache** | `celery`, `redis`, `django-celery-beat` | Asynchronous jobs and periodic tasks |
+| **In-Process AI/ML** | `scikit-learn`, `numpy`, `pandas`, `joblib` | Risk, ETA, route-ranking models |
+| **Image / Media** | `Pillow` | Photo upload validation & processing |
+| **Routing Helper** | `requests` (for OSRM), `networkx` | Routing adapter and fallback graph |
+| **API Docs** | `drf-spectacular` | OpenAPI 3.0 / Swagger generation |
+| **Testing & Quality** | `pytest`, `pytest-django`, `ruff`, `black` | Unit/API tests, formatting, linting |
+
+### ❌ Strictly Forbidden / Out of Scope (Do NOT Use)
+
+- **No WebSockets / Django Channels:** Use REST polling (10–15 second interval) for location tracking.
+- **No Separate AI Microservices:** AI runs **in-process** via Python packages.
+- **No Kubernetes / Swarm:** Run locally or via basic Docker Compose.
+- **No MQTT / IoT Protocols:** Location pings come directly from the mobile app via REST.
+- **No S3 / Cloud Storage:** Local media storage (`MEDIA_ROOT`) is mandatory for the hackathon MVP.
+- **No GraphQL:** Stick strictly to standard REST endpoints (`/api/v1/`).
+
+---
+
+## 3. Architecture & Coding Boundaries
+
+### 3.1 Views Stay Thin
+- **Views only:** Authenticate, check permissions, validate request serializer, call service, return response serializer.
+- **No business logic in `views.py`:** All domain operations belong in `apps/<domain>/services/` or `intelligence/services/`.
+
+### 3.2 In-Process AI Integration
+- AI models (Random Forest, Vision classifiers) live behind clean service wrappers (`intelligence/services/`).
+- Views and serializers must **never** import `ml/` internals or scikit-learn models directly.
+
+### 3.3 Infrastructure Data Integrity
+- Field Officers **cannot** directly create or modify `Infrastructure` records.
+- Field Officers submit `IncidentReport` (with Point location and photo).
+- The system resolves the affected road/bridge via spatial proximity:
+  ```python
+  nearby_infra = Infrastructure.objects.filter(
+      geom__dwithin=(report.geom, D(m=50))
+  ).first()
+  ```
+
+### 3.4 Ephemeral Route Candidates
+- `RouteCandidate` is a **computed response shape**, never a database model.
+- Do not create database migrations or tables for route candidates.
+
+### 3.5 Vehicle Location Optimization
+- Do not perform full-table scans on `LocationPing` for dashboard polling.
+- `Vehicle` model maintains cached fields: `current_lat`, `current_lng`, and `last_ping_time`.
+- Every incoming ping writes to `LocationPing` and atomically updates `Vehicle`.
+
+### 3.6 Hackathon Synchronous Demo Trigger
+- Periodic Celery Beat tasks handle routine polling (e.g. weather).
+- For live presentations, submitting an `IncidentReport` must trigger an immediate recalculation pipeline:
+  `Incident Upload → AI Vision → Update Infrastructure Risk → Recalculate Routes`
+
+---
+
+## 4. Offline Sync Boundaries
+
+1. **Client Identity:** Every client record must supply a client-generated UUID (`client_id`) and ISO-8601 `client_timestamp`.
+2. **Idempotency:** Re-submitting the same `client_id` must never create duplicate database rows.
+3. **Conflict Resolution:** Strictly **Last-Write-Wins (LWW)** based on `client_timestamp`.
+4. **Offline Photos:** Photos in batch JSON sync payloads must be transferred as `photo_base64` strings and decoded server-side.
+
+---
+
+## 5. Error Handling & API Response Standard
+
+### 5.1 Error Response Envelope
+Every failed API request must return HTTP status >= 400 with this standard JSON structure:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "User-friendly description of what failed.",
+    "details": {}
+  }
+}
+```
+
+### 5.2 Success Response Envelope
+```json
+{
+  "success": true,
+  "data": {}
+}
+```
+
+### 5.3 Standard Error Codes
+- `AUTHENTICATION_REQUIRED`: Missing or invalid JWT.
+- `PERMISSION_DENIED`: Role does not have access to this action.
+- `INVALID_REQUEST`: Serializer validation failed or bad payload format.
+- `RESOURCE_NOT_FOUND`: Target entity does not exist.
+- `DUPLICATE_RECORD`: Unique constraint violation or sync conflict.
+- `ROUTING_ERROR`: Waypoints unreachable or routing engine unavailable.
+- `EXTERNAL_SERVICE_ERROR`: Weather or external API failed.
+- `INTERNAL_ERROR`: Catch-all for unexpected server failures.
+
+### 5.4 Safety Rule
+**Never leak raw Python stack traces, SQL errors, or internal file paths to the API response.** Always catch and sanitize exceptions using custom DRF exception handling (`common/exceptions.py`).
+
+---
+
+## 6. Internationalization (i18n)
+
+- Alert notification titles and recommended actions must support multilingual display (English, Hindi, Assamese, Bengali).
+- API respects the standard `Accept-Language` HTTP header or a `?lang=` query parameter.
+- Use Django's built-in translation utilities (`gettext`, `gettext_lazy`) for alert message templates.
