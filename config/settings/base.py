@@ -22,6 +22,7 @@ DJANGO_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.gis',
 ]
 
 THIRD_PARTY_APPS = [
@@ -70,6 +71,22 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
+# GeoDjango / GDAL library paths (needed on Windows when PostGIS is enabled)
+if os.name == 'nt':
+    pg_bin = Path(os.getenv('POSTGRES_BIN_PATH', r'C:\Program Files\PostgreSQL\18\bin'))
+    if pg_bin.exists():
+        try:
+            os.add_dll_directory(str(pg_bin))
+        except (AttributeError, OSError):
+            pass
+        os.environ['PATH'] = str(pg_bin) + ';' + os.environ.get('PATH', '')
+        gdal_dll = next(pg_bin.glob('*gdal*.dll'), None)
+        geos_dll = pg_bin / 'libgeos_c.dll'
+        if gdal_dll and gdal_dll.exists():
+            GDAL_LIBRARY_PATH = str(gdal_dll)
+        if geos_dll.exists():
+            GEOS_LIBRARY_PATH = str(geos_dll)
+
 # Database Configuration
 USE_SQLITE = os.getenv('USE_SQLITE', 'False').lower() in ('true', '1', 't')
 
@@ -81,9 +98,10 @@ if USE_SQLITE:
         }
     }
 else:
+    db_engine = os.getenv('DB_ENGINE', 'django.contrib.gis.db.backends.postgis')
     DATABASES = {
         'default': {
-            'ENGINE': 'django.contrib.gis.db.backends.postgis',
+            'ENGINE': db_engine,
             'NAME': os.getenv('DB_NAME', 'sih26002_db'),
             'USER': os.getenv('DB_USER', 'postgres'),
             'PASSWORD': os.getenv('DB_PASSWORD', 'postgres'),
