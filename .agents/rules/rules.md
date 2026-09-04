@@ -138,3 +138,17 @@ Every failed API request must return HTTP status >= 400 with this standard JSON 
 - Alert notification titles and recommended actions must support multilingual display (English, Hindi, Assamese, Bengali).
 - API respects the standard `Accept-Language` HTTP header or a `?lang=` query parameter.
 - Use Django's built-in translation utilities (`gettext`, `gettext_lazy`) for alert message templates.
+
+---
+
+## 7. Autonomous Git & Memory Management
+
+### 7.1 Autonomous Git Commits
+- **Do not ask the user for permission to commit.** The assistant must autonomously execute a local `git commit` whenever a logical milestone is completed and verified (e.g., new model added, service completed, tests passing, or config changes).
+- Use clean Conventional Commits format (`feat(...)`, `fix(...)`, `docs(...)`, `chore(...)`, `test(...)`).
+- Do not commit on mid-debug intermediate syntax failures, but immediately commit once the step is functional and tested.
+- Push to remote (`git push`) at major phase checkpoints or when tests confirm full milestone completion.
+
+### 7.2 Living Memory (`memory.md`)
+- The file `.agents/memory.md` is the single source of truth for project progress, current tasks, technical environment facts, and next steps.
+- The assistant must automatically update `.agents/memory.md` whenever a phase or significant milestone advances.
