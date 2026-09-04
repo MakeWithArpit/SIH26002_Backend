@@ -30,7 +30,7 @@ Only install dependencies from this whitelist. Adding unapproved libraries requi
 | **Task Queue & Cache** | `celery`, `redis`, `django-celery-beat` | Asynchronous jobs and periodic tasks |
 | **In-Process AI/ML** | `scikit-learn`, `numpy`, `pandas`, `joblib` | Risk, ETA, route-ranking models |
 | **Image / Media** | `Pillow` | Photo upload validation & processing |
-| **Routing Helper** | `requests` (for OSRM), `networkx` | Routing adapter and fallback graph |
+| **Routing & Network** | `osmnx`, `networkx`, `requests` (for OSRM) | Road network graph extraction & pathfinding |
 | **API Docs** | `drf-spectacular` | OpenAPI 3.0 / Swagger generation |
 | **Testing & Quality** | `pytest`, `pytest-django`, `ruff`, `black` | Unit/API tests, formatting, linting |
 
@@ -51,19 +51,23 @@ Only install dependencies from this whitelist. Adding unapproved libraries requi
 - **Views only:** Authenticate, check permissions, validate request serializer, call service, return response serializer.
 - **No business logic in `views.py`:** All domain operations belong in `apps/<domain>/services/` or `intelligence/services/`.
 
-### 3.2 In-Process AI Integration
-- AI models (Random Forest, Vision classifiers) live behind clean service wrappers (`intelligence/services/`).
-- Views and serializers must **never** import `ml/` internals or scikit-learn models directly.
+### 3.2 In-Process AI & Replaceable Service Interfaces
+- **Rule-Based First, ML Drop-in Later:** For the MVP, risk scoring and ETA use explainable, rule-based algorithms (e.g. weighted hazard scoring, road-class speeds) so backend progress is never blocked by ML training datasets.
+- **Stable Service Contracts:** All predictive capabilities live behind stable service classes (`RiskPredictionService`, `RouteOptimizationService`, `ETAEstimationService`, `ImageAnalysisService`).
+- Views and serializers must **never** import ML internals or scikit-learn models directly. When trained models (Random Forest, XGBoost, CNN) are ready, they drop into the existing service wrappers with zero changes to controllers or database schemas.
 
-### 3.3 Infrastructure Data Integrity
-- Field Officers **cannot** directly create or modify `Infrastructure` records.
-- Field Officers submit `IncidentReport` (with Point location and photo).
-- The system resolves the affected road/bridge via spatial proximity:
+### 3.3 Road Network & Field Incident Snapping
+- **Selected Pilot Corridor:** Road network graphs are extracted for a bounded MVP area/corridor in the NER (e.g., Guwahati–Shillong transport corridor) rather than attempting whole-region downloads at once.
+- **Infrastructure & Road Segments:** Roads and road segments are stored with PostGIS geometries (`LineStringField`).
+- **Snapping Logic:** Field Officers submit `IncidentReport` (Point location + photo). The system snaps to the nearest road segment via spatial proximity:
   ```python
-  nearby_infra = Infrastructure.objects.filter(
-      geom__dwithin=(report.geom, D(m=50))
-  ).first()
+  nearest_segment = RoadSegment.objects.filter(
+      geom__dwithin=(report.geom, D(m=100))
+  ).annotate(
+      distance=Distance('geom', report.geom)
+  ).order_by('distance').first()
   ```
+- An incident report dynamically updates or temporarily boosts the disruption risk of the snapped road segment without mutating historical base infrastructure records directly.
 
 ### 3.4 Ephemeral Route Candidates
 - `RouteCandidate` is a **computed response shape**, never a database model.
