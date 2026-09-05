@@ -1,7 +1,7 @@
-﻿# SIH26002 Backend — Living Memory
+# SIH26002 Backend — Living Memory
 
 > **Auto-maintained by the assistant.** Updated on every major milestone.
-> Last updated: 2026-09-04
+> Last updated: 2026-09-05
 
 ---
 
@@ -38,8 +38,8 @@
 | Phase | Name | Status | Notes |
 |---|---|---|---|
 | **Phase 0** | Backend Foundation | COMPLETE | Django 5.1, DRF, JWT, PostGIS, GeoDjango, 4/4 tests passing |
-| **Phase 1** | Field Intelligence & Photo Analysis | NOT STARTED | Next up |
-| **Phase 2** | Road Network Graph & Disruption Risk | NOT STARTED | After Phase 1 |
+| **Phase 1** | Field Intelligence & Photo Analysis | COMPLETE | IncidentReport (PointField, photo), photo analysis stub, Field Officer scoping, 5/5 tests passing (9/9 total) |
+| **Phase 2** | Road Network Graph & Disruption Risk | READY | Next up |
 | **Phase 3** | Risk-Aware Route Optimization | NOT STARTED | |
 | **Phase 4** | Condition-Aware ETA Estimation | NOT STARTED | |
 | **Phase 5** | End-to-End Intelligence Pipeline | NOT STARTED | Hackathon Demo |
@@ -53,14 +53,25 @@
 
 ---
 
-## 4. Phase 0 — What Was Built
+## 4. Phase 0 & Phase 1 — What Was Built
 
+### Phase 0 — Foundation
 - `manage.py`, `config/settings/base.py`, `development.py`, `production.py`
 - `config/wsgi.py`, `config/asgi.py`, `config/urls.py`
-- `apps/accounts/` — Custom `Profile` model, `Role` choices (admin, field_officer, normal_user), JWT login/refresh views, tests
+- `apps/accounts/` — Custom `Profile` model, `Role` choices (admin, field_officer, normal_user), JWT login/refresh views, 4 tests passing
 - `apps/common/` — Unified success/data/error API envelope (responses.py, exceptions.py), `/api/v1/health/` endpoint
 - PostGIS extension enabled, GeoDjango backend configured with Windows GDAL auto-discovery
 - `requirements.txt` with approved dependencies
+
+### Phase 1 — Field Intelligence & Photo Analysis
+- `apps/reports/` — `IncidentReport` model with GeoDjango `PointField(srid=4326, geography=True)`, photo uploads, AI prediction fields (`ai_issue_type`, `ai_severity`, `ai_confidence`, `analysis_status`), and `snapped_road_segment_id`
+- `apps/reports/services/photo_analysis.py` — Replaceable CV service wrapper (AI-08 stub matching AI/ML team contract)
+- `apps/reports/services/spatial_snap.py` — Spatial snap service stub
+- `apps/reports/serializers.py` — Write (`IncidentReportCreateSerializer`) & Read (`IncidentReportSerializer`) with lat/lng conversion
+- `apps/reports/views.py` — `IncidentReportViewSet` with `IsFieldOfficer` permissions, immutable reports, and officer vs admin query scoping
+- `apps/reports/urls.py` — `/api/v1/reports/incidents/`
+- `apps/reports/admin.py` — GeoDjango OSM admin registration
+- `apps/reports/tests.py` — 5 unit/API tests (photo upload, AI execution, role permissions, officer scoping, validation error envelope)
 
 ---
 
@@ -68,38 +79,39 @@
 
 - Modular Monolith — no microservices
 - Rule-Based First, ML Drop-in Later — Risk & ETA use configurable weighted scoring; stable service contracts allow Omji models to plug in without changing controllers or DB
-- `RoadSegment` as Central Entity — Field reports spatially snap to nearest RoadSegment (PostGIS ST_DWithin); risk score lives on the segment
+- `RoadSegment` / `Infrastructure` as Central Entity — Field reports spatially snap to nearest segment (PostGIS ST_DWithin); risk score lives on the segment
 - `RouteCandidate` is ephemeral — never stored as DB model, always computed response
 - Pilot Corridor — MVP covers bounded NER corridor (e.g., Guwahati-Shillong / NH-06)
 - No WebSockets, No MQTT, No S3, No GraphQL, No Kubernetes
 - REST polling (10-15s) for vehicle location tracking
 - Last-Write-Wins (LWW) for offline sync conflict resolution
+- **Ponytail Plugin Always Active:** Every implementation strictly adheres to `rules.md` and chooses the simplest, shortest, most minimal working solution (YAGNI).
 
 ---
 
 ## 6. Currently Working On
 
-> Phase 1 — Field Intelligence & Photo Analysis
-> Nothing started yet. Next task: create apps/reports/ app with IncidentReport model.
+> Phase 1 verified and COMPLETE (9/9 total tests passing).
+> Next up: Phase 2 — Road Network Graph & Disruption Risk Intelligence (`apps/routes`, District & Infrastructure models, Rule-based Risk Engine, Pilot Corridor seed data, Report spatial snap).
 
 ---
 
-## 7. Immediate Next Steps (Phase 1 Checklist)
+## 7. Immediate Next Steps (Phase 2 Checklist)
 
-- [ ] Create `apps/reports/` Django app
-- [ ] `IncidentReport` model (PointField, photo, issue_type, severity, snapped_road_segment, client_id)
-- [ ] `ImageAnalysisService` stub (returns mock CV result until Omji model ready)
-- [ ] Field Officer permission class
-- [ ] `POST /api/v1/reports/incidents/` endpoint + serializer
-- [ ] Unit tests for upload, permission, and stub AI result
-- [ ] Commit & push Phase 1
+- [ ] Create `apps/routes/` Django app (`District` & `Infrastructure` GeoDjango models)
+- [ ] Implement `apps/routes/services/risk.py` (Rule-based Geospatial Risk Service matching AI-01 contract)
+- [ ] Connect `apps/reports/services/spatial_snap.py` to snap reports to `Infrastructure` and trigger risk updates
+- [ ] Pilot corridor seed command (`seed_pilot_corridor` for Guwahati–Shillong / NH-06)
+- [ ] Endpoints for `/api/v1/routes/districts/` and `/api/v1/routes/infrastructure/`
+- [ ] Comprehensive unit/API tests for Phase 2 (`apps/routes/tests.py`)
+- [ ] Verify test suite passes and update `memory.md`
 
 ---
 
-## 8. Git History (Major Commits)
+## 8. Test Execution History
 
-| Commit | Message |
-|---|---|
-| `5d1a5e4` | Phase 0 complete — foundation, accounts, common app, 4 tests passing |
-| `859eaed` | feat(database): enable GeoDjango PostGIS backend with Windows GDAL discovery |
-| `a1a1990` | docs(rules): align rules with Omji PRD (osmnx, replaceable services, road snapping) |
+| Date | Scope | Tests Run | Result | Notes |
+|---|---|---|---|---|
+| 2026-09-04 | Phase 0 (Accounts & Health) | 4 | 4 passed | JWT auth, roles, error envelope |
+| 2026-09-05 | Phase 1 (Reports & Photo Analysis) | 5 | 5 passed | Photo upload, PointField, AI stub, scoping, permissions |
+| 2026-09-05 | Full Suite (Phase 0 + Phase 1) | 9 | 9 passed | Complete pass across all apps |

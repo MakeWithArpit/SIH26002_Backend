@@ -11,6 +11,7 @@ This document defines the strict development standards, library whitelist, archi
    $$\text{Photo Analysis} \rightarrow \text{Risk Calculation} \rightarrow \text{Route Re-ranking} \rightarrow \text{ETA Prediction}$$
 3. **YAGNI (You Aren't Gonna Need It):** No speculative abstractions. No generic repository layers, event buses, or hand-rolled caching frameworks.
 4. **Fewest Files & Shortest Working Diff:** Use standard Django patterns and Python standard library before writing custom scaffolding.
+5. **Always Use Ponytail Plugin & Strict Adherence to Rules:** The `ponytail` plugin must always remain active across all design, code, review, and test decisions. Every solution must be the simplest, shortest, and most minimal that actually works. All code and workflows must strictly adhere to `rules.md` without exception.
 
 ---
 
