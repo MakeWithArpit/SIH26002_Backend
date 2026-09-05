@@ -41,8 +41,8 @@
 | **Phase 1**  | Field Intelligence & Photo Analysis  | COMPLETE    | IncidentReport (PointField, photo), photo analysis stub, Field Officer scoping, 5/5 tests passing                                                               |
 | **Phase 2**  | Road Network Graph & Disruption Risk | COMPLETE    | District & Infrastructure GeoDjango models, Rule-based Risk Engine (AI-01), Pilot corridor seed data, spatial snap integration, 7/7 tests passing               |
 | **Phase 3**  | Risk-Aware Route Optimization        | COMPLETE    | NetworkX graph pathfinding, dynamic risk penalties, ephemeral RouteCandidate, AI-03 ranking & explanation, POST /calculate/, 4/4 tests passing (20/20 total)    |
-| **Phase 4**  | Condition-Aware ETA Estimation       | READY       | Next up                                                                                                                                                         |
-| **Phase 5**  | End-to-End Intelligence Pipeline     | NOT STARTED | Hackathon Demo                                                                                                                                                  |
+| **Phase 4**  | Condition-Aware ETA Estimation       | COMPLETE    | Vehicle (cached telemetry), Trip (AI-02 ETA fields), LocationPing, ETAEstimationService, atomic ping ingestion, 7/7 tests passing (27/27 total)                 |
+| **Phase 5**  | End-to-End Intelligence Pipeline     | READY       | Next up: Demo pipeline script, end-to-end incident to detour & ETA recalc walkthrough                                                                           |
 | **Phase 6**  | Weather Intelligence                 | NOT STARTED | P1                                                                                                                                                              |
 | **Phase 7**  | Vehicle Tracking                     | NOT STARTED | P1                                                                                                                                                              |
 | **Phase 8**  | Alerts & Automated Intelligence      | NOT STARTED | P1                                                                                                                                                              |
@@ -53,7 +53,7 @@
 
 ---
 
-## 4. What Was Built (Phases 0–3)
+## 4. What Was Built (Phases 0–4)
 
 ### Phase 0 — Foundation
 
@@ -94,6 +94,23 @@
 - `apps/routes/views.py` & `urls.py` — `POST /api/v1/routes/calculate/` endpoint returning ranked route candidates with polylines and explanations
 - `apps/routes/tests.py` — 4 new tests (11 total in routes): safe bypass recommendation when highway is hazardous, shortest route recommendation when risk is low, coordinate-based calculation, and 401 unauthenticated protection
 
+### Phase 4 — Condition-Aware ETA Estimation & Vehicle Tracking
+
+- `apps/vehicles/models.py` —
+  - `Vehicle`: registration number, vehicle type, cached telemetry (`current_lat`, `current_lng`, `current_speed`, `last_ping_time`) for O(1) polling per rules.md section 3.5.
+  - `LocationPing`: historical telemetry breadcrumbs (timestamp, lat, lng, speed, heading, accuracy).
+  - `Trip`: linked to vehicle, GeoDjango `origin` & `destination` (`PointField`), `base_eta_minutes`, `predicted_eta_minutes`, `expected_delay_minutes`, `delay_reasons`, and status lifecycle (PLANNED, IN_TRANSIT, COMPLETED, CANCELLED).
+- `apps/vehicles/services/eta.py` — `ETAEstimationService` (AI-02 wrapper) implementing condition-aware travel time calculation:
+  - Base speed by NER road classification (NH: 50 km/h, SH: 40 km/h, MDR: 30 km/h, Rural: 20 km/h).
+  - Severe risk elevation (risk score > 66 increases travel time by 40%–75%).
+  - Heavy rainfall & weather penalties (e.g. >50mm adds 25% travel time).
+  - Real-time telemetry speed deficit calculation.
+- `apps/vehicles/serializers.py` & `views.py` —
+  - `VehicleViewSet`: CRUD + `POST /api/v1/vehicles/{id}/locations/` with atomic cache updates and `GET /api/v1/vehicles/{id}/location/latest/` for O(1) polling.
+  - `TripViewSet`: CRUD + `POST /api/v1/trips/{id}/start/`, `POST /api/v1/trips/{id}/complete/`, `POST /api/v1/trips/{id}/recalculate-eta/`.
+- `apps/vehicles/urls.py` & `admin.py` — Standard REST registration and GIS admin.
+- `apps/vehicles/tests.py` — 7 unit & API tests (Vehicle CRUD, location ping ingestion & atomic cache update, trip lifecycle, ETA penalty calculation, and recalculation endpoint).
+
 ---
 
 ## 5. Key Architectural Decisions (Locked)
@@ -104,7 +121,7 @@
 - `RouteCandidate` is ephemeral — never stored as DB model, always computed response
 - Pilot Corridor — MVP covers bounded NER corridor (e.g., Guwahati-Shillong / NH-06)
 - No WebSockets, No MQTT, No S3, No GraphQL, No Kubernetes
-- REST polling (10-15s) for vehicle location tracking
+- REST polling (10-15s) for vehicle location tracking using cached fields on `Vehicle`
 - Last-Write-Wins (LWW) for offline sync conflict resolution
 - **Ponytail Plugin Always Active:** Every implementation strictly adheres to `rules.md` and chooses the simplest, shortest, most minimal working solution (YAGNI).
 
@@ -112,20 +129,16 @@
 
 ## 6. Currently Working On
 
-> Phase 3 verified and COMPLETE (20/20 total backend tests passing).
-> Next up: Phase 4 — Condition-Aware ETA Estimation (`apps/vehicles`, `Vehicle`, `Trip`, `LocationPing` models, terrain/risk speed calculation, delay prediction matching AI-02).
+> Phase 4 verified and COMPLETE (27/27 total backend tests passing).
+> Next up: Phase 5 — End-to-End Intelligence Pipeline (Live Hackathon Demo script connecting photo incident -> spatial snap -> segment risk elevation -> route recalculation -> vehicle trip ETA delay update).
 
 ---
 
-## 7. Immediate Next Steps (Phase 4 Checklist)
+## 7. Immediate Next Steps (Phase 5 Checklist)
 
-- [ ] Create `apps/vehicles/` Django app
-- [ ] Models: `Vehicle` (cached `current_lat`, `current_lng`, `last_ping_time`), `Trip` (origin, destination, base_eta, predicted_eta, expected_delay, status), and `LocationPing`
-- [ ] Implement `ETAEstimationService` (AI-02 wrapper: road class speeds + risk penalty + weather factor = predicted ETA & delay)
-- [ ] Location ping ingestion endpoint (`POST /api/v1/vehicles/{id}/locations/`) with atomic Vehicle cache update
-- [ ] Trip creation and tracking endpoints
-- [ ] Unit & API tests for Phase 4 (`apps/vehicles/tests.py`)
-- [ ] Verify complete test suite and update `memory.md`
+- [ ] Management command / test runner simulating the end-to-end incident-to-reroute-and-ETA pipeline
+- [ ] Verify full corridor demo workflow (report landslide on NH-06 -> auto-snap to highway -> segment risk score surges to 85+ -> recalculate route selects safe MDR bypass -> trip ETA updates with delay explanation)
+- [ ] Ensure seamless DRF API demonstration for hackathon presentation
 
 ---
 
@@ -137,4 +150,5 @@
 | 2026-09-05 | Phase 1 (Reports & Photo Analysis) | 5         | 5 passed  | Photo upload, PointField, AI stub, scoping, permissions                   |
 | 2026-09-05 | Phase 2 (Road Network & Risk)      | 7         | 7 passed  | Districts, Infrastructure, Risk Engine, Proximity query, Snap integration |
 | 2026-09-05 | Phase 3 (Route Optimization)       | 4 (11 in routes) | 11 passed | NetworkX pathfinding, safest detour ranking, coordinate resolution       |
-| 2026-09-05 | Full Suite (Phases 0–3)            | 20        | 20 passed | 100% pass across accounts, reports, and routes                            |
+| 2026-09-05 | Phase 4 (Vehicles & ETA Engine)    | 7         | 7 passed  | Telemetry ingestion, atomic cache, trip lifecycle, condition-aware ETA    |
+| 2026-09-05 | Full Suite (Phases 0–4)            | 27        | 27 passed | 100% pass across accounts, reports, routes, and vehicles                  |
