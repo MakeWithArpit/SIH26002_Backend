@@ -42,7 +42,7 @@
 | **Phase 2**  | Road Network Graph & Disruption Risk | COMPLETE    | District & Infrastructure GeoDjango models, Rule-based Risk Engine (AI-01), Pilot corridor seed data, spatial snap integration, 7/7 tests passing               |
 | **Phase 3**  | Risk-Aware Route Optimization        | COMPLETE    | NetworkX graph pathfinding, dynamic risk penalties, ephemeral RouteCandidate, AI-03 ranking & explanation, POST /calculate/, 4/4 tests passing (20/20 total)    |
 | **Phase 4**  | Condition-Aware ETA Estimation       | COMPLETE    | Vehicle (cached telemetry), Trip (AI-02 ETA fields), LocationPing, ETAEstimationService, atomic ping ingestion, 7/7 tests passing (27/27 total)                 |
-| **Phase 5**  | End-to-End Intelligence Pipeline     | READY       | Next up: Demo pipeline script, end-to-end incident to detour & ETA recalc walkthrough                                                                           |
+| **Phase 5**  | End-to-End Intelligence Pipeline     | COMPLETE    | Management command `demo_pipeline`, `POST /api/v1/routes/simulate-pipeline/` API, 7/7 tests passing (34/34 total backend tests passing)                          |
 | **Phase 6**  | Weather Intelligence                 | NOT STARTED | P1                                                                                                                                                              |
 | **Phase 7**  | Vehicle Tracking                     | NOT STARTED | P1                                                                                                                                                              |
 | **Phase 8**  | Alerts & Automated Intelligence      | NOT STARTED | P1                                                                                                                                                              |
@@ -109,7 +109,17 @@
   - `VehicleViewSet`: CRUD + `POST /api/v1/vehicles/{id}/locations/` with atomic cache updates and `GET /api/v1/vehicles/{id}/location/latest/` for O(1) polling.
   - `TripViewSet`: CRUD + `POST /api/v1/trips/{id}/start/`, `POST /api/v1/trips/{id}/complete/`, `POST /api/v1/trips/{id}/recalculate-eta/`.
 - `apps/vehicles/urls.py` & `admin.py` — Standard REST registration and GIS admin.
-- `apps/vehicles/tests.py` — 7 unit & API tests (Vehicle CRUD, location ping ingestion & atomic cache update, trip lifecycle, ETA penalty calculation, and recalculation endpoint).
+### Phase 5 — End-to-End Intelligence Pipeline
+
+- `apps/routes/management/commands/demo_pipeline.py` — Management command running the 6-step intelligence pipeline demo on the NH-06 corridor:
+  1. Field Officer submits geo-tagged critical incident report
+  2. Spatial snap to nearest road segment (`Infrastructure`)
+  3. Disruption risk engine recalculates (risk surges from MEDIUM to HIGH)
+  4. Road network graph rebuilds with elevated edge weights
+  5. Route ranking engine automatically switches recommendation from highway to safe detour
+  6. ETA estimation computes delay and explanations; demo entities cleaned up automatically
+- `apps/routes/views.py` & `urls.py` — `POST /api/v1/routes/simulate-pipeline/` endpoint orchestrating the full pipeline simulation in a single API call for hackathon judges and frontends.
+- `apps/routes/test_pipeline.py` — 7 comprehensive integration tests covering individual pipeline stages, spatial snap, risk surges, route reranking, ETA estimations, and API endpoints.
 
 ---
 
@@ -129,16 +139,17 @@
 
 ## 6. Currently Working On
 
-> Phase 4 verified and COMPLETE (27/27 total backend tests passing).
-> Next up: Phase 5 — End-to-End Intelligence Pipeline (Live Hackathon Demo script connecting photo incident -> spatial snap -> segment risk elevation -> route recalculation -> vehicle trip ETA delay update).
+> Phase 5 verified and COMPLETE (34/34 total backend tests passing).
+> Next up: Phase 6 — Weather Intelligence & Automated Ingestion (Open-Meteo API integration, background refresh, weather hazard multipliers).
 
 ---
 
-## 7. Immediate Next Steps (Phase 5 Checklist)
+## 7. Immediate Next Steps (Phase 6 Checklist)
 
-- [ ] Management command / test runner simulating the end-to-end incident-to-reroute-and-ETA pipeline
-- [ ] Verify full corridor demo workflow (report landslide on NH-06 -> auto-snap to highway -> segment risk score surges to 85+ -> recalculate route selects safe MDR bypass -> trip ETA updates with delay explanation)
-- [ ] Ensure seamless DRF API demonstration for hackathon presentation
+- [ ] Weather ingestion service fetching temperature, precipitation, and warnings for corridor districts
+- [ ] Automated risk engine hooks to update `recent_rainfall_mm` and `weather_warning`
+- [ ] Background management command for periodic weather refresh
+- [ ] Unit & integration tests for weather ingestion and risk impact
 
 ---
 
@@ -151,4 +162,5 @@
 | 2026-09-05 | Phase 2 (Road Network & Risk)      | 7         | 7 passed  | Districts, Infrastructure, Risk Engine, Proximity query, Snap integration |
 | 2026-09-05 | Phase 3 (Route Optimization)       | 4 (11 in routes) | 11 passed | NetworkX pathfinding, safest detour ranking, coordinate resolution       |
 | 2026-09-05 | Phase 4 (Vehicles & ETA Engine)    | 7         | 7 passed  | Telemetry ingestion, atomic cache, trip lifecycle, condition-aware ETA    |
-| 2026-09-05 | Full Suite (Phases 0–4)            | 27        | 27 passed | 100% pass across accounts, reports, routes, and vehicles                  |
+| 2026-09-05 | Phase 5 (E2E Intelligence Pipeline)| 7 (18 in routes) | 18 passed | End-to-end simulation, spatial snap, risk spike, reranking, demo API      |
+| 2026-09-05 | Full Suite (Phases 0–5)            | 34        | 34 passed | 100% pass across accounts, reports, routes, and vehicles                  |

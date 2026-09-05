@@ -2,6 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.gis.geos import Point
+from django.utils import timezone
 from django.contrib.gis.measure import D
 from django.contrib.gis.db.models.functions import Distance
 
@@ -187,3 +188,125 @@ class CalculateRouteView(viewsets.views.APIView):
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
 
+
+class SimulatePipelineView(viewsets.views.APIView):
+    """
+    Phase 5: End-to-End Intelligence Pipeline Simulation.
+    POST /api/v1/routes/simulate-pipeline/
+
+    Steps:
+      1. Accept incident details (type, severity, location)
+      2. Create report & spatially snap to nearest road segment
+      3. Risk engine recalculates on snapped segment
+      4. Road graph rebuilds; routes reranked
+      5. Condition-aware ETA estimated on recommended route
+
+    Returns before/after snapshots and recommendation_changed flag.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        from apps.reports.models import IncidentReport, IncidentType, SeverityLevel
+        from apps.reports.services.spatial_snap import snap
+        from .services.routing.graph import RoadNetworkGraphService
+        from .services.route_ranking import RouteRankingService
+        from apps.vehicles.services.eta import ETAEstimationService
+
+        incident_lat = request.data.get('incident_lat')
+        incident_lng = request.data.get('incident_lng')
+        incident_type = request.data.get('incident_type', IncidentType.LANDSLIDE)
+        severity = request.data.get('severity', SeverityLevel.HIGH)
+        origin_node = request.data.get('origin_node')
+        destination_node = request.data.get('destination_node')
+
+        if not all([incident_lat, incident_lng, origin_node, destination_node]):
+            return standard_response(
+                message="Required: incident_lat, incident_lng, origin_node, destination_node",
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            before_candidates = RoadNetworkGraphService.generate_candidate_routes(origin_node, destination_node)
+        except ValueError as e:
+            return standard_response(message=str(e), status_code=status.HTTP_400_BAD_REQUEST)
+
+        before_ranked = RouteRankingService.rank_routes(before_candidates)
+        before_rec = next((c for c in before_ranked if c.recommended), before_ranked[0] if before_ranked else None)
+
+        report = IncidentReport.objects.create(
+            officer=request.user,
+            photo="reports/photos/pipeline_sim/placeholder.jpg",
+            location=Point(float(incident_lng), float(incident_lat), srid=4326),
+            description=f"Pipeline simulation: {incident_type} at ({incident_lat}, {incident_lng})",
+            incident_type=incident_type,
+            severity=severity,
+            client_timestamp=timezone.now(),
+            ai_issue_type=incident_type,
+            ai_severity=severity,
+            ai_confidence=0.92,
+        )
+
+        snap(report)
+        report.refresh_from_db()
+
+        try:
+            after_candidates = RoadNetworkGraphService.generate_candidate_routes(origin_node, destination_node)
+        except ValueError as e:
+            report.delete()
+            return standard_response(message=str(e), status_code=status.HTTP_400_BAD_REQUEST)
+
+        after_ranked = RouteRankingService.rank_routes(after_candidates)
+        after_rec = next((c for c in after_ranked if c.recommended), after_ranked[0] if after_ranked else None)
+
+        eta_result = None
+        if after_rec:
+            segs = [
+                {
+                    'length_km': seg['length_km'],
+                    'road_classification': 'national_highway',
+                    'risk_score': seg['risk_score'],
+                    'status': seg['status'],
+                }
+                for seg in after_rec.segments
+            ]
+            eta_result = ETAEstimationService.calculate_eta_for_route(segments=segs)
+
+        snapped_name = report.snapped_infrastructure.name if report.snapped_infrastructure else None
+        report.delete()
+
+        return standard_response(
+            data={
+                'pipeline_steps': [
+                    'incident_report_created',
+                    'spatial_snap_executed',
+                    'risk_recalculated',
+                    'routes_reranked',
+                    'eta_estimated',
+                ],
+                'incident': {
+                    'type': incident_type,
+                    'severity': severity,
+                    'location': {'lat': incident_lat, 'lng': incident_lng},
+                    'snapped_to': snapped_name,
+                },
+                'before': {
+                    'recommended_route': before_rec.route_id if before_rec else None,
+                    'recommended_route_name': before_rec.name if before_rec else None,
+                    'risk_level': before_rec.risk_level if before_rec else None,
+                    'base_eta_minutes': before_rec.base_eta_minutes if before_rec else None,
+                },
+                'after': {
+                    'recommended_route': after_rec.route_id if after_rec else None,
+                    'recommended_route_name': after_rec.name if after_rec else None,
+                    'risk_level': after_rec.risk_level if after_rec else None,
+                    'base_eta_minutes': after_rec.base_eta_minutes if after_rec else None,
+                    'routes': [c.to_dict() for c in after_ranked],
+                },
+                'eta': eta_result,
+                'recommendation_changed': (
+                    before_rec.route_id != after_rec.route_id
+                    if before_rec and after_rec else False
+                ),
+            },
+            message="End-to-end intelligence pipeline simulated successfully.",
+        )
