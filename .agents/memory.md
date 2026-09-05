@@ -38,9 +38,9 @@
 | Phase | Name | Status | Notes |
 |---|---|---|---|
 | **Phase 0** | Backend Foundation | COMPLETE | Django 5.1, DRF, JWT, PostGIS, GeoDjango, 4/4 tests passing |
-| **Phase 1** | Field Intelligence & Photo Analysis | COMPLETE | IncidentReport (PointField, photo), photo analysis stub, Field Officer scoping, 5/5 tests passing (9/9 total) |
-| **Phase 2** | Road Network Graph & Disruption Risk | READY | Next up |
-| **Phase 3** | Risk-Aware Route Optimization | NOT STARTED | |
+| **Phase 1** | Field Intelligence & Photo Analysis | COMPLETE | IncidentReport (PointField, photo), photo analysis stub, Field Officer scoping, 5/5 tests passing |
+| **Phase 2** | Road Network Graph & Disruption Risk | COMPLETE | District & Infrastructure GeoDjango models, Rule-based Risk Engine (AI-01), Pilot corridor seed data, spatial snap integration, 7/7 tests passing (16/16 total) |
+| **Phase 3** | Risk-Aware Route Optimization | READY | Next up |
 | **Phase 4** | Condition-Aware ETA Estimation | NOT STARTED | |
 | **Phase 5** | End-to-End Intelligence Pipeline | NOT STARTED | Hackathon Demo |
 | **Phase 6** | Weather Intelligence | NOT STARTED | P1 |
@@ -53,7 +53,7 @@
 
 ---
 
-## 4. Phase 0 & Phase 1 — What Was Built
+## 4. What Was Built (Phases 0–2)
 
 ### Phase 0 — Foundation
 - `manage.py`, `config/settings/base.py`, `development.py`, `production.py`
@@ -64,14 +64,21 @@
 - `requirements.txt` with approved dependencies
 
 ### Phase 1 — Field Intelligence & Photo Analysis
-- `apps/reports/` — `IncidentReport` model with GeoDjango `PointField(srid=4326, geography=True)`, photo uploads, AI prediction fields (`ai_issue_type`, `ai_severity`, `ai_confidence`, `analysis_status`), and `snapped_road_segment_id`
+- `apps/reports/` — `IncidentReport` model with GeoDjango `PointField(srid=4326, geography=True)`, photo uploads, AI prediction fields (`ai_issue_type`, `ai_severity`, `ai_confidence`, `analysis_status`), and foreign key `snapped_infrastructure`
 - `apps/reports/services/photo_analysis.py` — Replaceable CV service wrapper (AI-08 stub matching AI/ML team contract)
-- `apps/reports/services/spatial_snap.py` — Spatial snap service stub
 - `apps/reports/serializers.py` — Write (`IncidentReportCreateSerializer`) & Read (`IncidentReportSerializer`) with lat/lng conversion
 - `apps/reports/views.py` — `IncidentReportViewSet` with `IsFieldOfficer` permissions, immutable reports, and officer vs admin query scoping
 - `apps/reports/urls.py` — `/api/v1/reports/incidents/`
 - `apps/reports/admin.py` — GeoDjango OSM admin registration
 - `apps/reports/tests.py` — 5 unit/API tests (photo upload, AI execution, role permissions, officer scoping, validation error envelope)
+
+### Phase 2 — Road Network Graph & Disruption Risk Intelligence
+- `apps/routes/models.py` — `District` (`MultiPolygonField`, accessibility score, connectivity status) and `Infrastructure` (`LineStringField`, road classification, graph start/end nodes, static hazard ratings, dynamic rainfall/weather warnings, calculated disruption risk scores)
+- `apps/routes/services/risk.py` — `RiskPredictionService` implementing explainable weighted rule-based scoring matching the AI-01 interface (0–100 score, disruption probability, risk level, top factors)
+- `apps/reports/services/spatial_snap.py` — Live PostGIS proximity snapping (`ST_DWithin` 1000m buffer & fallback nearest neighbor) that snaps incoming incident reports to `Infrastructure` and automatically triggers risk recalculation
+- `apps/routes/management/commands/seed_pilot_corridor.py` — Seeds Guwahati–Shillong (NH-06 / GS Road) corridor with 3 districts (Kamrup Metropolitan, Ri-Bhoi, East Khasi Hills) and 6 road segments
+- `apps/routes/serializers.py` & `views.py` — `/api/v1/routes/districts/` and `/api/v1/routes/infrastructure/` with proximity filters (`?lat=...&lng=...&radius_m=...`) and custom `/assess-risk/` action
+- `apps/routes/tests.py` — 7 unit & API tests (district listing, infrastructure filters, proximity queries, risk calculation contract, risk assess action, spatial snap integration, and role permissions)
 
 ---
 
@@ -91,20 +98,21 @@
 
 ## 6. Currently Working On
 
-> Phase 1 verified and COMPLETE (9/9 total tests passing).
-> Next up: Phase 2 — Road Network Graph & Disruption Risk Intelligence (`apps/routes`, District & Infrastructure models, Rule-based Risk Engine, Pilot Corridor seed data, Report spatial snap).
+> Phase 2 verified and COMPLETE (16/16 total backend tests passing).
+> Next up: Phase 3 — Candidate Routes & Risk-Aware Route Optimization (`apps/routes/services/routing/`, NetworkX graph routing, route candidate feature generation, AI-03 route ranker wrapper).
 
 ---
 
-## 7. Immediate Next Steps (Phase 2 Checklist)
+## 7. Immediate Next Steps (Phase 3 Checklist)
 
-- [ ] Create `apps/routes/` Django app (`District` & `Infrastructure` GeoDjango models)
-- [ ] Implement `apps/routes/services/risk.py` (Rule-based Geospatial Risk Service matching AI-01 contract)
-- [ ] Connect `apps/reports/services/spatial_snap.py` to snap reports to `Infrastructure` and trigger risk updates
-- [ ] Pilot corridor seed command (`seed_pilot_corridor` for Guwahati–Shillong / NH-06)
-- [ ] Endpoints for `/api/v1/routes/districts/` and `/api/v1/routes/infrastructure/`
-- [ ] Comprehensive unit/API tests for Phase 2 (`apps/routes/tests.py`)
-- [ ] Verify test suite passes and update `memory.md`
+- [ ] NetworkX graph loader from `Infrastructure` database segments
+- [ ] Candidate route generator (`routing/base.py`, `mock.py`, `factory.py`)
+- [ ] Risk-penalized edge weights & pathfinding (shortest distance vs safest risk-aware route)
+- [ ] Ephemeral `RouteCandidate` dataclass/serializer (not a DB model)
+- [ ] AI-03 Route Ranking service wrapper (`intelligence/services/route_ranking.py`)
+- [ ] Endpoint: `POST /api/v1/routes/calculate/`
+- [ ] Phase 3 unit & integration tests
+- [ ] Verify full test suite and update `memory.md`
 
 ---
 
@@ -114,4 +122,5 @@
 |---|---|---|---|---|
 | 2026-09-04 | Phase 0 (Accounts & Health) | 4 | 4 passed | JWT auth, roles, error envelope |
 | 2026-09-05 | Phase 1 (Reports & Photo Analysis) | 5 | 5 passed | Photo upload, PointField, AI stub, scoping, permissions |
-| 2026-09-05 | Full Suite (Phase 0 + Phase 1) | 9 | 9 passed | Complete pass across all apps |
+| 2026-09-05 | Phase 2 (Road Network & Risk) | 7 | 7 passed | Districts, Infrastructure, Risk Engine, Proximity query, Snap integration |
+| 2026-09-05 | Full Suite (Phases 0–2) | 16 | 16 passed | 100% pass across accounts, reports, and routes |

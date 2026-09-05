@@ -36,6 +36,7 @@ LOCAL_APPS = [
     'apps.accounts.apps.AccountsConfig',
     'apps.common',
     'apps.reports.apps.ReportsConfig',
+    'apps.routes.apps.RoutesConfig',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS

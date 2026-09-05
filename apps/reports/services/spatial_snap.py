@@ -1,27 +1,51 @@
 """
-Spatial Snap Service — Phase 2 stub.
-
-Phase 2: Use PostGIS ST_DWithin / ST_ClosestPoint to snap the report's
-GPS location to the nearest RoadSegment in the road network graph.
-
-Phase 1: No-op — RoadSegment does not exist yet.
+Spatial Snap Service — Phase 2 implementation.
+Snaps IncidentReport's GPS location to the nearest Infrastructure segment
+via PostGIS ST_DWithin / Distance, and triggers risk recalculation.
 """
 import logging
+from django.contrib.gis.measure import D
+from django.contrib.gis.db.models.functions import Distance
 
 from apps.reports.models import IncidentReport
+from apps.routes.models import Infrastructure
+from apps.routes.services.risk import RiskPredictionService
 
 logger = logging.getLogger(__name__)
 
 
 def snap(report: IncidentReport) -> None:
     """
-    Snap an IncidentReport's location to the nearest RoadSegment.
-
-    Phase 1 stub: does nothing, snapped_road_segment stays NULL.
-    Phase 2: populate report.snapped_road_segment via PostGIS query.
+    Snap an IncidentReport's location to the nearest Infrastructure segment.
+    If an infrastructure segment is found within 1000m (or nearest), link it
+    and trigger risk recalculation.
     """
-    # No-op until Phase 2 delivers the roads app with RoadSegment model.
-    logger.debug(
-        'Spatial snap skipped for report %s (RoadSegment not yet available)',
-        report.pk,
-    )
+    if not report.location:
+        return
+
+    # 1. Look for infrastructure within 1km buffer
+    nearest = Infrastructure.objects.filter(
+        geom__dwithin=(report.location, D(m=1000))
+    ).annotate(
+        dist=Distance('geom', report.location)
+    ).order_by('dist').first()
+
+    # 2. Fallback to closest overall infrastructure if not in 1km buffer
+    if not nearest:
+        nearest = Infrastructure.objects.annotate(
+            dist=Distance('geom', report.location)
+        ).order_by('dist').first()
+
+    if nearest:
+        report.snapped_infrastructure = nearest
+        report.save(update_fields=['snapped_infrastructure'])
+        # Recalculate disruption risk with this newly associated incident report
+        RiskPredictionService.assess_and_update(nearest)
+        logger.info(
+            'Report %s snapped to %s (id=%s). Risk updated to %s (%s).',
+            report.pk,
+            nearest.name,
+            nearest.pk,
+            nearest.risk_level,
+            nearest.risk_score,
+        )

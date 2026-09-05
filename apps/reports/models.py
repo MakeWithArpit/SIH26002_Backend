@@ -52,14 +52,19 @@ class IncidentReport(models.Model):
     # Geospatial location (WGS84)
     location = models.PointField(srid=4326, geography=True)
 
-    # Road segment this report snaps to (populated by SpatialSnapService in Phase 2)
-    # Phase 1: plain integer placeholder — replaced with FK to RoadSegment in Phase 2
-    snapped_road_segment_id = models.IntegerField(
+    # Road segment / infrastructure this report snaps to (populated by SpatialSnapService in Phase 2)
+    snapped_infrastructure = models.ForeignKey(
+        'routes.Infrastructure',
         null=True,
         blank=True,
-        db_index=True,
-        help_text='ID of the nearest RoadSegment (Phase 2 FK).',
+        on_delete=models.SET_NULL,
+        related_name='incident_reports',
+        help_text='Nearest Infrastructure segment snapped via PostGIS.',
     )
+
+    @property
+    def snapped_road_segment_id(self):
+        return self.snapped_infrastructure_id
 
     # Officer-provided fields
     description = models.TextField(blank=True, default='')

@@ -40,6 +40,11 @@ class IncidentReportSerializer(serializers.ModelSerializer):
     easy consumption by mobile/frontend clients.
     """
     officer_username = serializers.CharField(source='officer.username', read_only=True)
+    snapped_infrastructure_name = serializers.CharField(
+        source='snapped_infrastructure.name',
+        read_only=True,
+        default=None,
+    )
     latitude = serializers.SerializerMethodField()
     longitude = serializers.SerializerMethodField()
 
@@ -62,6 +67,8 @@ class IncidentReportSerializer(serializers.ModelSerializer):
             'ai_confidence',
             'analysis_status',
             'status',
+            'snapped_infrastructure',
+            'snapped_infrastructure_name',
             'snapped_road_segment_id',
             'updated_at',
         ]
