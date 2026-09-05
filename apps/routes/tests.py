@@ -93,6 +93,25 @@ class Phase2RoadNetworkAndRiskTests(TestCase):
         )
         RiskPredictionService.assess_and_update(self.seg2)
 
+        # Road Segment 3 (Safe Detour Bypass connecting N1 to N3 directly)
+        self.seg3 = Infrastructure.objects.create(
+            district=self.district,
+            name='Test Safe Detour Bypass',
+            infra_type=InfrastructureType.ROAD,
+            road_classification=RoadClassification.STATE_HIGHWAY,
+            start_node='N1',
+            end_node='N3',
+            length_km=38.0,
+            base_speed_kmh=50.0,
+            landslide_susceptibility=HazardLevel.LOW,
+            flood_hazard_zone=HazardLevel.LOW,
+            historical_landslide_count=0,
+            recent_rainfall_mm=0.0,
+            weather_warning=False,
+            geom=LineString([(91.75, 26.18), (91.82, 26.08), (91.88, 26.00)]),
+        )
+        RiskPredictionService.assess_and_update(self.seg3)
+
     def test_districts_list_and_retrieve(self):
         self.client.force_authenticate(user=self.normal_user)
         res = self.client.get('/api/v1/routes/districts/')
@@ -182,3 +201,86 @@ class Phase2RoadNetworkAndRiskTests(TestCase):
         # Attempt to create
         res = self.client.post('/api/v1/routes/infrastructure/', {'name': 'Hacked Road'}, format='json')
         self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+
+    # ── Phase 3: Route Calculation & Risk Optimization Tests ─────────────
+
+    def test_route_calculation_recommends_safe_detour_when_shortest_is_hazardous(self):
+        """
+        N1 -> N2 -> N3: distance 35 km, but seg2 has risk 95.0.
+        N1 -> N3 (Bypass): distance 38 km (3 km longer), but risk is 0.0.
+        Engine must generate both candidates and recommend the safe bypass.
+        """
+        self.client.force_authenticate(user=self.normal_user)
+        payload = {
+            'origin_node': 'N1',
+            'destination_node': 'N3',
+        }
+        res = self.client.post('/api/v1/routes/calculate/', payload, format='json')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        data = res.json()['data']
+
+        self.assertEqual(data['origin_node'], 'N1')
+        self.assertEqual(data['destination_node'], 'N3')
+        routes = data['routes']
+        self.assertGreaterEqual(len(routes), 2)
+
+        # Recommended route is sorted first
+        recommended_route = routes[0]
+        self.assertTrue(recommended_route['recommended'])
+        self.assertEqual(recommended_route['route_id'], 'route-safe')
+        self.assertEqual(recommended_route['distance_km'], 38.0)
+        self.assertEqual(recommended_route['risk_level'], 'low')
+        self.assertIn('Recommended for safety', recommended_route['explanation'])
+
+        # Shortest route is second and not recommended
+        shortest_route = next(r for r in routes if r['route_id'] == 'route-shortest')
+        self.assertFalse(shortest_route['recommended'])
+        self.assertEqual(shortest_route['distance_km'], 35.0)
+        self.assertEqual(shortest_route['risk_level'], 'high')
+        self.assertIn('NOT recommended', shortest_route['explanation'])
+
+    def test_route_calculation_recommends_shortest_when_risk_is_acceptable(self):
+        """
+        If mountain pass seg2 risk drops to 0, shortest route should be recommended.
+        """
+        self.seg2.landslide_susceptibility = HazardLevel.LOW
+        self.seg2.recent_rainfall_mm = 0.0
+        self.seg2.weather_warning = False
+        self.seg2.historical_landslide_count = 0
+        self.seg2.flood_hazard_zone = HazardLevel.LOW
+        RiskPredictionService.assess_and_update(self.seg2)
+
+        self.client.force_authenticate(user=self.normal_user)
+        payload = {'origin_node': 'N1', 'destination_node': 'N3'}
+        res = self.client.post('/api/v1/routes/calculate/', payload, format='json')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        routes = res.json()['data']['routes']
+
+        recommended = routes[0]
+        self.assertTrue(recommended['recommended'])
+        self.assertEqual(recommended['route_id'], 'route-shortest')
+        self.assertEqual(recommended['distance_km'], 35.0)
+        self.assertEqual(recommended['risk_level'], 'low')
+
+    def test_route_calculation_by_coordinates(self):
+        """Test resolving lat/lng coordinates to nearest nodes and calculating route."""
+        self.client.force_authenticate(user=self.normal_user)
+        # Coords near N1 (26.18, 91.75) and N3 (26.00, 91.88)
+        payload = {
+            'origin_lat': 26.18,
+            'origin_lng': 91.75,
+            'destination_lat': 26.00,
+            'destination_lng': 91.88,
+        }
+        res = self.client.post('/api/v1/routes/calculate/', payload, format='json')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        data = res.json()['data']
+        self.assertEqual(data['origin_node'], 'N1')
+        self.assertEqual(data['destination_node'], 'N3')
+        self.assertGreaterEqual(len(data['routes']), 1)
+        self.assertIn('polyline', data['routes'][0])
+
+    def test_route_calculation_unauthenticated_rejected(self):
+        res = self.client.post('/api/v1/routes/calculate/', {'origin_node': 'N1', 'destination_node': 'N3'})
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
+

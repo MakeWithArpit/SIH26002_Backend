@@ -77,3 +77,49 @@ class InfrastructureRiskAssessSerializer(serializers.Serializer):
     recent_rainfall_mm = serializers.FloatField(required=False, min_value=0.0)
     weather_warning = serializers.BooleanField(required=False)
     simulate_only = serializers.BooleanField(default=False, help_text="If true, does not persist to DB")
+
+
+class RouteCandidateSerializer(serializers.Serializer):
+    route_id = serializers.CharField()
+    name = serializers.CharField()
+    distance_km = serializers.FloatField()
+    base_eta_minutes = serializers.FloatField()
+    risk_score = serializers.FloatField()
+    risk_level = serializers.CharField()
+    recommended = serializers.BooleanField()
+    explanation = serializers.CharField()
+    polyline = serializers.ListField(child=serializers.ListField(child=serializers.FloatField()))
+    segments = serializers.ListField(child=serializers.DictField())
+
+
+class RouteCalculationRequestSerializer(serializers.Serializer):
+    """
+    Accepts lat/lng coordinates or direct graph node IDs.
+    """
+    origin_lat = serializers.FloatField(required=False, min_value=-90, max_value=90)
+    origin_lng = serializers.FloatField(required=False, min_value=-180, max_value=180)
+    destination_lat = serializers.FloatField(required=False, min_value=-90, max_value=90)
+    destination_lng = serializers.FloatField(required=False, min_value=-180, max_value=180)
+
+    origin_node = serializers.CharField(required=False)
+    destination_node = serializers.CharField(required=False)
+
+    def validate(self, data):
+        has_origin_coords = 'origin_lat' in data and 'origin_lng' in data
+        has_origin_node = 'origin_node' in data and data['origin_node']
+
+        if not (has_origin_coords or has_origin_node):
+            raise serializers.ValidationError(
+                "Either (origin_lat, origin_lng) or origin_node must be provided."
+            )
+
+        has_dest_coords = 'destination_lat' in data and 'destination_lng' in data
+        has_dest_node = 'destination_node' in data and data['destination_node']
+
+        if not (has_dest_coords or has_dest_node):
+            raise serializers.ValidationError(
+                "Either (destination_lat, destination_lng) or destination_node must be provided."
+            )
+
+        return data
+

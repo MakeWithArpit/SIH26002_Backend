@@ -7,55 +7,56 @@
 
 ## 1. Project Identity
 
-| Field | Value |
-|---|---|
-| **Project** | SIH26002 — AI-Based Smart Logistics & Accessibility Intelligence Platform (NER) |
-| **Hackathon** | Smart India Hackathon 2026 |
-| **Team Split** | Arpit = Django Backend; Omji = AI/ML models (CV, Risk, Route Ranking, ETA) |
-| **Repo** | `MakeWithArpit/SIH26002_Backend` (GitHub `main` branch) |
+| Field          | Value                                                                           |
+| -------------- | ------------------------------------------------------------------------------- |
+| **Project**    | SIH26002 — AI-Based Smart Logistics & Accessibility Intelligence Platform (NER) |
+| **Hackathon**  | Smart India Hackathon 2026                                                      |
+| **Team Split** | Arpit = Django Backend; Omji = AI/ML models (CV, Risk, Route Ranking, ETA)      |
+| **Repo**       | `MakeWithArpit/SIH26002_Backend` (GitHub `main` branch)                         |
 
 ---
 
 ## 2. Technical Environment (Local Dev)
 
-| Item | Value |
-|---|---|
-| **OS** | Windows 11 |
-| **Python** | 3.14 (via `.venv`) |
-| **Django** | 5.1 |
-| **Database** | PostgreSQL 18 (`localhost:5432`, db=`sih26002_db`, user=`postgres`) |
-| **PostGIS** | 3.6.2 enabled on `sih26002_db` |
-| **GDAL** | `libgdal-35.dll` from `C:\Program Files\PostgreSQL\18\bin` (auto-discovered in `base.py`) |
-| **GeoDjango Backend** | `django.contrib.gis.db.backends.postgis` |
-| **Settings Module** | `DJANGO_SETTINGS_MODULE=config.settings.development` |
-| **DB Engine in .env** | `DB_ENGINE=django.contrib.gis.db.backends.postgis` |
-| **USE_SQLITE** | `False` |
+| Item                  | Value                                                                                     |
+| --------------------- | ----------------------------------------------------------------------------------------- |
+| **OS**                | Windows 11                                                                                |
+| **Python**            | 3.14 (via `.venv`)                                                                        |
+| **Django**            | 5.1                                                                                       |
+| **Database**          | PostgreSQL 18 (`localhost:5432`, db=`sih26002_db`, user=`postgres`)                       |
+| **PostGIS**           | 3.6.2 enabled on `sih26002_db`                                                            |
+| **GDAL**              | `libgdal-35.dll` from `C:\Program Files\PostgreSQL\18\bin` (auto-discovered in `base.py`) |
+| **GeoDjango Backend** | `django.contrib.gis.db.backends.postgis`                                                  |
+| **Settings Module**   | `DJANGO_SETTINGS_MODULE=config.settings.development`                                      |
+| **DB Engine in .env** | `DB_ENGINE=django.contrib.gis.db.backends.postgis`                                        |
+| **USE_SQLITE**        | `False`                                                                                   |
 
 ---
 
 ## 3. Phase Completion Status
 
-| Phase | Name | Status | Notes |
-|---|---|---|---|
-| **Phase 0** | Backend Foundation | COMPLETE | Django 5.1, DRF, JWT, PostGIS, GeoDjango, 4/4 tests passing |
-| **Phase 1** | Field Intelligence & Photo Analysis | COMPLETE | IncidentReport (PointField, photo), photo analysis stub, Field Officer scoping, 5/5 tests passing |
-| **Phase 2** | Road Network Graph & Disruption Risk | COMPLETE | District & Infrastructure GeoDjango models, Rule-based Risk Engine (AI-01), Pilot corridor seed data, spatial snap integration, 7/7 tests passing (16/16 total) |
-| **Phase 3** | Risk-Aware Route Optimization | READY | Next up |
-| **Phase 4** | Condition-Aware ETA Estimation | NOT STARTED | |
-| **Phase 5** | End-to-End Intelligence Pipeline | NOT STARTED | Hackathon Demo |
-| **Phase 6** | Weather Intelligence | NOT STARTED | P1 |
-| **Phase 7** | Vehicle Tracking | NOT STARTED | P1 |
-| **Phase 8** | Alerts & Automated Intelligence | NOT STARTED | P1 |
-| **Phase 9** | Offline Sync | NOT STARTED | P1/P2 |
-| **Phase 10** | Accessibility Intelligence | NOT STARTED | P2 |
-| **Phase 11** | Dashboard APIs | NOT STARTED | P2 |
-| **Phase 12** | Production Hardening | NOT STARTED | P2 |
+| Phase        | Name                                 | Status      | Notes                                                                                                                                                           |
+| ------------ | ------------------------------------ | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Phase 0**  | Backend Foundation                   | COMPLETE    | Django 5.1, DRF, JWT, PostGIS, GeoDjango, 4/4 tests passing                                                                                                     |
+| **Phase 1**  | Field Intelligence & Photo Analysis  | COMPLETE    | IncidentReport (PointField, photo), photo analysis stub, Field Officer scoping, 5/5 tests passing                                                               |
+| **Phase 2**  | Road Network Graph & Disruption Risk | COMPLETE    | District & Infrastructure GeoDjango models, Rule-based Risk Engine (AI-01), Pilot corridor seed data, spatial snap integration, 7/7 tests passing               |
+| **Phase 3**  | Risk-Aware Route Optimization        | COMPLETE    | NetworkX graph pathfinding, dynamic risk penalties, ephemeral RouteCandidate, AI-03 ranking & explanation, POST /calculate/, 4/4 tests passing (20/20 total)    |
+| **Phase 4**  | Condition-Aware ETA Estimation       | READY       | Next up                                                                                                                                                         |
+| **Phase 5**  | End-to-End Intelligence Pipeline     | NOT STARTED | Hackathon Demo                                                                                                                                                  |
+| **Phase 6**  | Weather Intelligence                 | NOT STARTED | P1                                                                                                                                                              |
+| **Phase 7**  | Vehicle Tracking                     | NOT STARTED | P1                                                                                                                                                              |
+| **Phase 8**  | Alerts & Automated Intelligence      | NOT STARTED | P1                                                                                                                                                              |
+| **Phase 9**  | Offline Sync                         | NOT STARTED | P1/P2                                                                                                                                                           |
+| **Phase 10** | Accessibility Intelligence           | NOT STARTED | P2                                                                                                                                                              |
+| **Phase 11** | Dashboard APIs                       | NOT STARTED | P2                                                                                                                                                              |
+| **Phase 12** | Production Hardening                 | NOT STARTED | P2                                                                                                                                                              |
 
 ---
 
-## 4. What Was Built (Phases 0–2)
+## 4. What Was Built (Phases 0–3)
 
 ### Phase 0 — Foundation
+
 - `manage.py`, `config/settings/base.py`, `development.py`, `production.py`
 - `config/wsgi.py`, `config/asgi.py`, `config/urls.py`
 - `apps/accounts/` — Custom `Profile` model, `Role` choices (admin, field_officer, normal_user), JWT login/refresh views, 4 tests passing
@@ -64,6 +65,7 @@
 - `requirements.txt` with approved dependencies
 
 ### Phase 1 — Field Intelligence & Photo Analysis
+
 - `apps/reports/` — `IncidentReport` model with GeoDjango `PointField(srid=4326, geography=True)`, photo uploads, AI prediction fields (`ai_issue_type`, `ai_severity`, `ai_confidence`, `analysis_status`), and foreign key `snapped_infrastructure`
 - `apps/reports/services/photo_analysis.py` — Replaceable CV service wrapper (AI-08 stub matching AI/ML team contract)
 - `apps/reports/serializers.py` — Write (`IncidentReportCreateSerializer`) & Read (`IncidentReportSerializer`) with lat/lng conversion
@@ -73,12 +75,24 @@
 - `apps/reports/tests.py` — 5 unit/API tests (photo upload, AI execution, role permissions, officer scoping, validation error envelope)
 
 ### Phase 2 — Road Network Graph & Disruption Risk Intelligence
+
 - `apps/routes/models.py` — `District` (`MultiPolygonField`, accessibility score, connectivity status) and `Infrastructure` (`LineStringField`, road classification, graph start/end nodes, static hazard ratings, dynamic rainfall/weather warnings, calculated disruption risk scores)
 - `apps/routes/services/risk.py` — `RiskPredictionService` implementing explainable weighted rule-based scoring matching the AI-01 interface (0–100 score, disruption probability, risk level, top factors)
 - `apps/reports/services/spatial_snap.py` — Live PostGIS proximity snapping (`ST_DWithin` 1000m buffer & fallback nearest neighbor) that snaps incoming incident reports to `Infrastructure` and automatically triggers risk recalculation
 - `apps/routes/management/commands/seed_pilot_corridor.py` — Seeds Guwahati–Shillong (NH-06 / GS Road) corridor with 3 districts (Kamrup Metropolitan, Ri-Bhoi, East Khasi Hills) and 6 road segments
 - `apps/routes/serializers.py` & `views.py` — `/api/v1/routes/districts/` and `/api/v1/routes/infrastructure/` with proximity filters (`?lat=...&lng=...&radius_m=...`) and custom `/assess-risk/` action
 - `apps/routes/tests.py` — 7 unit & API tests (district listing, infrastructure filters, proximity queries, risk calculation contract, risk assess action, spatial snap integration, and role permissions)
+
+### Phase 3 — Candidate Routes & Risk-Aware Route Optimization
+
+- `apps/routes/services/routing/graph.py` — `RoadNetworkGraphService` building NetworkX graph from PostGIS `Infrastructure` records, coordinate-to-node snapping, and dual pathfinding:
+  - Shortest Path (pure distance/travel time)
+  - Safest Path (dynamic risk-penalized edge weights: $\text{distance} \times (1 + \frac{\text{risk}}{15}) \times 100 \text{ if blocked}$)
+  - Ephemeral `RouteCandidate` dataclass with polylines and segment breakdowns (never a DB model)
+- `apps/routes/services/route_ranking.py` — `RouteRankingService` (AI-03 wrapper) comparing candidates, weighing risk tradeoff against distance/time, picking recommended route, and generating transparent explanations
+- `apps/routes/serializers.py` — `RouteCalculationRequestSerializer` (supports lat/lng coords or node IDs) and `RouteCandidateSerializer`
+- `apps/routes/views.py` & `urls.py` — `POST /api/v1/routes/calculate/` endpoint returning ranked route candidates with polylines and explanations
+- `apps/routes/tests.py` — 4 new tests (11 total in routes): safe bypass recommendation when highway is hazardous, shortest route recommendation when risk is low, coordinate-based calculation, and 401 unauthenticated protection
 
 ---
 
@@ -98,29 +112,29 @@
 
 ## 6. Currently Working On
 
-> Phase 2 verified and COMPLETE (16/16 total backend tests passing).
-> Next up: Phase 3 — Candidate Routes & Risk-Aware Route Optimization (`apps/routes/services/routing/`, NetworkX graph routing, route candidate feature generation, AI-03 route ranker wrapper).
+> Phase 3 verified and COMPLETE (20/20 total backend tests passing).
+> Next up: Phase 4 — Condition-Aware ETA Estimation (`apps/vehicles`, `Vehicle`, `Trip`, `LocationPing` models, terrain/risk speed calculation, delay prediction matching AI-02).
 
 ---
 
-## 7. Immediate Next Steps (Phase 3 Checklist)
+## 7. Immediate Next Steps (Phase 4 Checklist)
 
-- [ ] NetworkX graph loader from `Infrastructure` database segments
-- [ ] Candidate route generator (`routing/base.py`, `mock.py`, `factory.py`)
-- [ ] Risk-penalized edge weights & pathfinding (shortest distance vs safest risk-aware route)
-- [ ] Ephemeral `RouteCandidate` dataclass/serializer (not a DB model)
-- [ ] AI-03 Route Ranking service wrapper (`intelligence/services/route_ranking.py`)
-- [ ] Endpoint: `POST /api/v1/routes/calculate/`
-- [ ] Phase 3 unit & integration tests
-- [ ] Verify full test suite and update `memory.md`
+- [ ] Create `apps/vehicles/` Django app
+- [ ] Models: `Vehicle` (cached `current_lat`, `current_lng`, `last_ping_time`), `Trip` (origin, destination, base_eta, predicted_eta, expected_delay, status), and `LocationPing`
+- [ ] Implement `ETAEstimationService` (AI-02 wrapper: road class speeds + risk penalty + weather factor = predicted ETA & delay)
+- [ ] Location ping ingestion endpoint (`POST /api/v1/vehicles/{id}/locations/`) with atomic Vehicle cache update
+- [ ] Trip creation and tracking endpoints
+- [ ] Unit & API tests for Phase 4 (`apps/vehicles/tests.py`)
+- [ ] Verify complete test suite and update `memory.md`
 
 ---
 
 ## 8. Test Execution History
 
-| Date | Scope | Tests Run | Result | Notes |
-|---|---|---|---|---|
-| 2026-09-04 | Phase 0 (Accounts & Health) | 4 | 4 passed | JWT auth, roles, error envelope |
-| 2026-09-05 | Phase 1 (Reports & Photo Analysis) | 5 | 5 passed | Photo upload, PointField, AI stub, scoping, permissions |
-| 2026-09-05 | Phase 2 (Road Network & Risk) | 7 | 7 passed | Districts, Infrastructure, Risk Engine, Proximity query, Snap integration |
-| 2026-09-05 | Full Suite (Phases 0–2) | 16 | 16 passed | 100% pass across accounts, reports, and routes |
+| Date       | Scope                              | Tests Run | Result    | Notes                                                                     |
+| ---------- | ---------------------------------- | --------- | --------- | ------------------------------------------------------------------------- |
+| 2026-09-04 | Phase 0 (Accounts & Health)        | 4         | 4 passed  | JWT auth, roles, error envelope                                           |
+| 2026-09-05 | Phase 1 (Reports & Photo Analysis) | 5         | 5 passed  | Photo upload, PointField, AI stub, scoping, permissions                   |
+| 2026-09-05 | Phase 2 (Road Network & Risk)      | 7         | 7 passed  | Districts, Infrastructure, Risk Engine, Proximity query, Snap integration |
+| 2026-09-05 | Phase 3 (Route Optimization)       | 4 (11 in routes) | 11 passed | NetworkX pathfinding, safest detour ranking, coordinate resolution       |
+| 2026-09-05 | Full Suite (Phases 0–3)            | 20        | 20 passed | 100% pass across accounts, reports, and routes                            |

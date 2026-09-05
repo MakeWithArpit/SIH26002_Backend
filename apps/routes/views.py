@@ -125,3 +125,65 @@ class InfrastructureViewSet(viewsets.ModelViewSet):
             data=serializer.data,
             message='Disruption risk assessed and updated successfully.',
         )
+
+
+class CalculateRouteView(viewsets.views.APIView):
+    """
+    Phase 3: Route Calculation & Risk-Aware Optimization Endpoint.
+    POST /api/v1/routes/calculate/
+    Generates candidate routes (shortest vs safest) using NetworkX on PostGIS road graph,
+    weighs disruption risk penalties, and provides ranked recommendations.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        from .serializers import RouteCalculationRequestSerializer, RouteCandidateSerializer
+        from .services.routing.graph import RoadNetworkGraphService
+        from .services.route_ranking import RouteRankingService
+
+        serializer = RouteCalculationRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        # Determine origin node
+        origin_node = data.get('origin_node')
+        if not origin_node:
+            origin_node = RoadNetworkGraphService.find_nearest_node(
+                data['origin_lat'], data['origin_lng']
+            )
+
+        # Determine destination node
+        dest_node = data.get('destination_node')
+        if not dest_node:
+            dest_node = RoadNetworkGraphService.find_nearest_node(
+                data['destination_lat'], data['destination_lng']
+            )
+
+        if not origin_node or not dest_node:
+            return standard_response(
+                success=False,
+                message="Could not resolve origin or destination to road network nodes.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            candidates = RoadNetworkGraphService.generate_candidate_routes(origin_node, dest_node)
+            ranked_routes = RouteRankingService.rank_routes(candidates)
+            serialized_routes = [c.to_dict() for c in ranked_routes]
+
+            return standard_response(
+                data={
+                    'origin_node': origin_node,
+                    'destination_node': dest_node,
+                    'routes_count': len(serialized_routes),
+                    'routes': serialized_routes,
+                },
+                message="Candidate routes calculated and ranked successfully.",
+            )
+        except ValueError as e:
+            return standard_response(
+                success=False,
+                message=str(e),
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
