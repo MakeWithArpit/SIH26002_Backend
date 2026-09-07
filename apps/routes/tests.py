@@ -17,7 +17,7 @@ from apps.routes.models import (
     HazardLevel,
     OperationalStatus,
 )
-from apps.routes.services.risk import RiskPredictionService
+from apps.intelligence.services.risk.engine import RiskEngine
 from apps.reports.models import IncidentReport, IncidentType, SeverityLevel
 
 
@@ -31,6 +31,8 @@ def get_test_image():
 
 class Phase2RoadNetworkAndRiskTests(TestCase):
     def setUp(self):
+        from apps.routes.services.routing.graph import RoadNetworkGraphService
+        RoadNetworkGraphService.clear_graph_cache()
         self.client = APIClient()
 
         # Users
@@ -72,7 +74,7 @@ class Phase2RoadNetworkAndRiskTests(TestCase):
             weather_warning=False,
             geom=LineString([(91.75, 26.18), (91.80, 26.15), (91.85, 26.10)]),
         )
-        RiskPredictionService.assess_and_update(self.seg1)
+        RiskEngine.assess_and_update(self.seg1)
 
         # Road Segment 2 (High Risk Mountain Pass)
         self.seg2 = Infrastructure.objects.create(
@@ -91,7 +93,7 @@ class Phase2RoadNetworkAndRiskTests(TestCase):
             weather_warning=True,
             geom=LineString([(91.85, 26.10), (91.88, 26.00)]),
         )
-        RiskPredictionService.assess_and_update(self.seg2)
+        RiskEngine.assess_and_update(self.seg2)
 
         # Road Segment 3 (Safe Detour Bypass connecting N1 to N3 directly)
         self.seg3 = Infrastructure.objects.create(
@@ -110,7 +112,7 @@ class Phase2RoadNetworkAndRiskTests(TestCase):
             weather_warning=False,
             geom=LineString([(91.75, 26.18), (91.82, 26.08), (91.88, 26.00)]),
         )
-        RiskPredictionService.assess_and_update(self.seg3)
+        RiskEngine.assess_and_update(self.seg3)
 
     def test_districts_list_and_retrieve(self):
         self.client.force_authenticate(user=self.normal_user)
@@ -143,7 +145,7 @@ class Phase2RoadNetworkAndRiskTests(TestCase):
 
     def test_rule_based_risk_engine_contract(self):
         # seg2 has: high landslide (+30) + historical (+15) + medium flood (+15) + rain>50 (+25) + warning (+10) = 95
-        assessment = RiskPredictionService.calculate_risk(self.seg2)
+        assessment = RiskEngine.calculate_risk(self.seg2)
         self.assertEqual(assessment['risk_level'], 'high')
         self.assertEqual(assessment['risk_score'], 95.0)
         self.assertEqual(assessment['disruption_probability'], 0.95)
@@ -248,7 +250,7 @@ class Phase2RoadNetworkAndRiskTests(TestCase):
         self.seg2.weather_warning = False
         self.seg2.historical_landslide_count = 0
         self.seg2.flood_hazard_zone = HazardLevel.LOW
-        RiskPredictionService.assess_and_update(self.seg2)
+        RiskEngine.assess_and_update(self.seg2)
 
         self.client.force_authenticate(user=self.normal_user)
         payload = {'origin_node': 1001, 'destination_node': 1003}

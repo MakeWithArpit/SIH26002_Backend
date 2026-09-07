@@ -1,6 +1,27 @@
 import json
 from rest_framework import serializers
-from .models import District, Infrastructure
+from .models import District, Infrastructure, WeatherSnapshot
+
+
+class WeatherSnapshotSerializer(serializers.ModelSerializer):
+    district_name = serializers.CharField(source='district.name', read_only=True)
+
+    class Meta:
+        model = WeatherSnapshot
+        fields = [
+            'id',
+            'district',
+            'district_name',
+            'rainfall_mm',
+            'condition',
+            'temperature_c',
+            'humidity_pct',
+            'wind_speed_kmh',
+            'weather_warning',
+            'warning_details',
+            'recorded_at',
+            'created_at',
+        ]
 
 
 class DistrictSerializer(serializers.ModelSerializer):
@@ -87,10 +108,13 @@ class RouteCandidateSerializer(serializers.Serializer):
     name = serializers.CharField()
     distance_km = serializers.FloatField()
     base_eta_minutes = serializers.FloatField()
+    adjusted_eta_minutes = serializers.FloatField(required=False)
+    delay_severity = serializers.CharField(required=False)
     risk_score = serializers.FloatField()
     risk_level = serializers.CharField()
     recommended = serializers.BooleanField()
     explanation = serializers.CharField()
+    top_factors = serializers.ListField(child=serializers.CharField(), required=False)
     polyline = serializers.ListField(child=serializers.ListField(child=serializers.FloatField()))
     segments = serializers.ListField(child=serializers.DictField())
 

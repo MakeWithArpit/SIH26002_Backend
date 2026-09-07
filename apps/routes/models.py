@@ -46,6 +46,13 @@ class RiskLevel(models.TextChoices):
     HIGH = 'high', 'High'
 
 
+class WeatherCondition(models.TextChoices):
+    CLEAR = 'clear', 'Clear'
+    MODERATE = 'moderate', 'Moderate'
+    HEAVY = 'heavy', 'Heavy'
+    EXTREME = 'extreme', 'Extreme'
+
+
 class District(models.Model):
     """
     District administrative boundary and accessibility indicator.
@@ -67,6 +74,22 @@ class District(models.Model):
 
     def __str__(self):
         return f"{self.name}, {self.state}"
+
+    @property
+    def latest_weather(self):
+        return self.weather_snapshots.order_by('-recorded_at').first()
+
+    def get_representative_point(self):
+        """
+        Derive a representative geographic point (lat, lng) guaranteed to lie
+        on/in the district geometry using point_on_surface.
+        """
+        if not self.geom:
+            raise ValueError(f"District '{self.name}' has no geometry defined.")
+        pt = self.geom.point_on_surface
+        if not pt:
+            pt = self.geom.centroid
+        return (round(pt.y, 4), round(pt.x, 4))
 
 
 class Infrastructure(models.Model):
@@ -165,6 +188,11 @@ class Infrastructure(models.Model):
     )
     top_factors = models.JSONField(default=list, blank=True)
     last_assessed_at = models.DateTimeField(auto_now=True)
+    risk_updated_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Timestamp of latest calculated infrastructure risk",
+    )
 
     class Meta:
         verbose_name = 'Infrastructure Segment'
@@ -182,3 +210,50 @@ class Infrastructure(models.Model):
         if self.base_speed_kmh > 0 and (not self.base_travel_time_min or self.base_travel_time_min <= 0):
             self.base_travel_time_min = round((self.length_km / self.base_speed_kmh) * 60.0, 2)
         super().save(*args, **kwargs)
+
+
+class WeatherSnapshot(models.Model):
+    """
+    Persisted historical snapshot of weather conditions associated with a District.
+    Ingested periodically from external weather providers (e.g., Open-Meteo).
+    """
+    district = models.ForeignKey(
+        District,
+        on_delete=models.CASCADE,
+        related_name='weather_snapshots',
+    )
+    rainfall_mm = models.FloatField(
+        default=0.0,
+        help_text="Accumulated rainfall over recent window (e.g. past 24 hours) in mm",
+    )
+    condition = models.CharField(
+        max_length=20,
+        choices=WeatherCondition.choices,
+        default=WeatherCondition.CLEAR,
+    )
+    temperature_c = models.FloatField(null=True, blank=True)
+    humidity_pct = models.FloatField(null=True, blank=True)
+    wind_speed_kmh = models.FloatField(null=True, blank=True)
+    weather_warning = models.BooleanField(
+        default=False,
+        help_text="Official weather warning status (False unless from an official warning source)",
+    )
+    warning_details = models.CharField(max_length=255, blank=True, default='')
+    raw_payload = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Raw provider response payload for audit and debugging",
+    )
+    recorded_at = models.DateTimeField(db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Weather Snapshot'
+        verbose_name_plural = 'Weather Snapshots'
+        ordering = ['-recorded_at']
+        indexes = [
+            models.Index(fields=['district', '-recorded_at']),
+        ]
+
+    def __str__(self):
+        return f"{self.district.name} — {self.condition} ({self.rainfall_mm}mm) at {self.recorded_at}"

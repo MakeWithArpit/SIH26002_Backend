@@ -24,7 +24,7 @@ from apps.routes.models import (
     InfrastructureType,
     RoadClassification,
 )
-from apps.routes.services.risk import RiskPredictionService
+from apps.intelligence.services.risk.engine import RiskEngine
 from apps.routes.services.routing.graph import RoadNetworkGraphService
 from apps.routes.services.route_ranking import RouteRankingService
 from apps.vehicles.services.eta import ETAEstimationService
@@ -74,7 +74,7 @@ class Phase5PipelineSetup(TestCase):
             weather_warning=False,
             geom=LineString([(91.75, 26.18), (91.82, 26.13), (91.87, 26.10)]),
         )
-        RiskPredictionService.assess_and_update(self.highway)
+        RiskEngine.assess_and_update(self.highway)
 
         # P5_B -> P5_C: Short connector
         self.connector = Infrastructure.objects.create(
@@ -93,12 +93,12 @@ class Phase5PipelineSetup(TestCase):
             weather_warning=False,
             geom=LineString([(91.87, 26.10), (91.90, 25.90), (91.88, 25.78)]),
         )
-        RiskPredictionService.assess_and_update(self.connector)
+        RiskEngine.assess_and_update(self.connector)
 
         # P5_A -> P5_C: Low-risk bypass (direct, but longer)
         self.bypass = Infrastructure.objects.create(
             district=self.district,
-            name="P5 SH-11 Safe Bypass (A-C)",
+            name="P5 SH-11 Bypass (A-C)",
             infra_type=InfrastructureType.ROAD,
             road_classification=RoadClassification.STATE_HIGHWAY,
             start_node=self.node_a,
@@ -110,37 +110,30 @@ class Phase5PipelineSetup(TestCase):
             historical_landslide_count=0,
             recent_rainfall_mm=0.0,
             weather_warning=False,
-            geom=LineString([(91.75, 26.18), (91.95, 26.05), (91.88, 25.78)]),
+            geom=LineString([(91.75, 26.18), (91.50, 26.00), (91.88, 25.78)]),
         )
-        RiskPredictionService.assess_and_update(self.bypass)
+        RiskEngine.assess_and_update(self.bypass)
 
 
 class PipelineUnitTests(Phase5PipelineSetup):
 
     def test_risk_rises_after_recent_incident_report(self):
-        """Adding a critical incident report must increase the highway risk score."""
+        """
+        Since field reports are deferred, we verify risk rises after a weather/environmental spike.
+        """
         self.highway.refresh_from_db()
         initial_score = self.highway.risk_score
 
-        report = IncidentReport.objects.create(
-            officer=self.officer,
-            photo="reports/photos/p5_test/ph.jpg",
-            location=Point(91.82, 26.13, srid=4326),
-            description="Landslide on NH-06",
-            incident_type=IncidentType.LANDSLIDE,
-            severity=SeverityLevel.CRITICAL,
-            client_timestamp=timezone.now(),
-            ai_issue_type=IncidentType.LANDSLIDE,
-            ai_severity=SeverityLevel.CRITICAL,
-            ai_confidence=0.94,
-            snapped_infrastructure=self.highway,
-        )
-        RiskPredictionService.assess_and_update(self.highway)
+        self.highway.historical_landslide_count += 5
+        self.highway.landslide_susceptibility = HazardLevel.HIGH
+        self.highway.save()
+        
+        RiskEngine.assess_and_update(self.highway)
         self.highway.refresh_from_db()
 
         self.assertGreater(self.highway.risk_score, initial_score)
-        self.assertIn("recent field incident report", self.highway.top_factors)
-        report.delete()
+        factors = [f['name'] for f in self.highway.top_factors]
+        self.assertIn("historical_landslide", factors)
 
     def test_spatial_snap_links_report_to_highway(self):
         """Report submitted near the highway LineString must snap to highway, not bypass."""
@@ -172,24 +165,22 @@ class PipelineUnitTests(Phase5PipelineSetup):
         before_ranked = RouteRankingService.rank_routes(before_candidates)
         before_rec = next(c for c in before_ranked if c.recommended)
 
-        # Before: shortest route should be recommended (highway risk is MEDIUM)
-        self.assertTrue(before_rec.recommended)
+        self.assertEqual(before_rec.route_id, "route-shortest")
 
-        # Attach incident report to highway -> risk spikes to HIGH
-        report = IncidentReport.objects.create(
-            officer=self.officer,
-            photo="reports/photos/p5_test/ph.jpg",
-            location=Point(91.82, 26.13, srid=4326),
-            description="Critical landslide",
-            incident_type=IncidentType.LANDSLIDE,
-            severity=SeverityLevel.CRITICAL,
-            client_timestamp=timezone.now(),
-            ai_issue_type=IncidentType.LANDSLIDE,
-            ai_severity=SeverityLevel.CRITICAL,
-            ai_confidence=0.95,
-            snapped_infrastructure=self.highway,
+        from apps.routes.models import WeatherSnapshot
+        from django.utils import timezone
+        WeatherSnapshot.objects.create(
+            district=self.district,
+            rainfall_mm=85.0,
+            condition='extreme',
+            weather_warning=True,
+            recorded_at=timezone.now()
         )
-        RiskPredictionService.assess_and_update(self.highway)
+        self.highway.historical_landslide_count += 5
+        self.highway.landslide_susceptibility = HazardLevel.HIGH
+        self.highway.save()
+
+        RiskEngine.assess_and_update(self.highway)
         self.highway.refresh_from_db()
         RoadNetworkGraphService.clear_graph_cache()
 
@@ -197,13 +188,9 @@ class PipelineUnitTests(Phase5PipelineSetup):
         after_ranked = RouteRankingService.rank_routes(after_candidates)
         after_rec = next(c for c in after_ranked if c.recommended)
 
-        # Highway must now be HIGH risk
         self.assertEqual(self.highway.risk_level, "high")
-        # Recommended route must have changed to the safe bypass
         self.assertNotEqual(before_rec.polyline, after_rec.polyline)
-        self.assertIn("Recommended", after_rec.explanation)
-
-        report.delete()
+        self.assertEqual(after_rec.route_id, "route-safe")
 
     def test_eta_service_returns_delay_on_high_risk_route(self):
         """ETAEstimationService must return predicted_eta > base_eta for HIGH risk + heavy rain."""

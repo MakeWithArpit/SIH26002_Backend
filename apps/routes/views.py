@@ -13,6 +13,7 @@ from .serializers import (
     DistrictSerializer,
     InfrastructureSerializer,
     InfrastructureRiskAssessSerializer,
+    WeatherSnapshotSerializer,
 )
 from .services.risk import RiskPredictionService
 
@@ -21,7 +22,7 @@ class DistrictViewSet(viewsets.ReadOnlyModelViewSet):
     """
     Read-only viewset for districts and their regional accessibility metrics.
     """
-    queryset = District.objects.prefetch_related('infrastructure').all()
+    queryset = District.objects.prefetch_related('infrastructure', 'weather_snapshots').all()
     serializer_class = DistrictSerializer
     permission_classes = [IsAuthenticated]
 
@@ -32,6 +33,23 @@ class DistrictViewSet(viewsets.ReadOnlyModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
+        return standard_response(data=serializer.data)
+
+    @action(detail=True, methods=['get'], url_path='weather')
+    def weather(self, request, pk=None):
+        """
+        GET /api/v1/routes/districts/{id}/weather/
+        Return the latest successful WeatherSnapshot for this district.
+        """
+        district = self.get_object()
+        latest = district.latest_weather
+        if not latest:
+            return standard_response(
+                data=None,
+                message=f"No weather observations recorded for district '{district.name}'.",
+                status_code=status.HTTP_200_OK,
+            )
+        serializer = WeatherSnapshotSerializer(latest)
         return standard_response(data=serializer.data)
 
 
@@ -155,6 +173,8 @@ class CalculateRouteView(viewsets.views.APIView):
             origin_node = RoadNetworkGraphService.find_nearest_node(
                 data['origin_lat'], data['origin_lng']
             )
+        elif isinstance(origin_node, str) and origin_node.isdigit():
+            origin_node = int(origin_node)
 
         # Determine destination node
         dest_node = data.get('destination_node')
@@ -162,6 +182,8 @@ class CalculateRouteView(viewsets.views.APIView):
             dest_node = RoadNetworkGraphService.find_nearest_node(
                 data['destination_lat'], data['destination_lng']
             )
+        elif isinstance(dest_node, str) and dest_node.isdigit():
+            dest_node = int(dest_node)
 
         if not origin_node or not dest_node:
             return standard_response(
@@ -169,11 +191,23 @@ class CalculateRouteView(viewsets.views.APIView):
                 message="Could not resolve origin or destination to road network nodes.",
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
-
         try:
+            from apps.intelligence.services.eta.engine import ETAEngine
+            
             candidates = RoadNetworkGraphService.generate_candidate_routes(origin_node, dest_node)
             ranked_routes = RouteRankingService.rank_routes(candidates)
-            serialized_routes = [c.to_dict() for c in ranked_routes]
+            
+            serialized_routes = []
+            for route in ranked_routes:
+                # Calculate condition-aware ETA for each candidate
+                eta_result = ETAEngine.estimate_eta(route)
+                
+                route_dict = route.to_dict()
+                route_dict['adjusted_eta_minutes'] = eta_result.adjusted_eta_minutes
+                route_dict['delay_severity'] = eta_result.delay_severity
+                route_dict['top_factors'] = eta_result.top_factors
+                
+                serialized_routes.append(route_dict)
 
             return standard_response(
                 data={
@@ -186,7 +220,6 @@ class CalculateRouteView(viewsets.views.APIView):
             )
         except ValueError as e:
             return standard_response(
-                success=False,
                 message=str(e),
                 status_code=status.HTTP_400_BAD_REQUEST,
             )

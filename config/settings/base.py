@@ -35,6 +35,7 @@ THIRD_PARTY_APPS = [
 LOCAL_APPS = [
     'apps.accounts.apps.AccountsConfig',
     'apps.common',
+    'apps.intelligence.apps.IntelligenceConfig',
     'apps.reports.apps.ReportsConfig',
     'apps.routes.apps.RoutesConfig',
     'apps.vehicles.apps.VehiclesConfig',
@@ -188,4 +189,35 @@ LANDSLIDE_INVENTORY_PATH = BASE_DIR / os.getenv(
 LANDSLIDE_SUSCEPTIBILITY_PATH = BASE_DIR / os.getenv(
     'LANDSLIDE_SUSCEPTIBILITY_PATH', 'data/geospatial/gsi/landslide_susceptibility_demo.geojson'
 )
+
+# Weather Intelligence Configuration
+WEATHER_PROVIDER = os.getenv('WEATHER_PROVIDER', 'open_meteo')
+OPEN_METEO_BASE_URL = os.getenv('OPEN_METEO_BASE_URL', 'https://api.open-meteo.com/v1/forecast')
+OPEN_METEO_TIMEOUT_SECONDS = float(os.getenv('OPEN_METEO_TIMEOUT_SECONDS', 10.0))
+WEATHER_RECENT_RAINFALL_HOURS = int(os.getenv('WEATHER_RECENT_RAINFALL_HOURS', 24))
+
+# Celery & Redis Configuration (Optional / Non-blocking)
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60
+
+# Infrastructure Risk Engine Configuration (apps.intelligence)
+RISK_WEIGHT_LANDSLIDE_SUSCEPTIBILITY_HIGH = float(os.getenv('RISK_WEIGHT_LANDSLIDE_SUSCEPTIBILITY_HIGH', 30.0))
+RISK_WEIGHT_HISTORICAL_LANDSLIDE = float(os.getenv('RISK_WEIGHT_HISTORICAL_LANDSLIDE', 15.0))
+RISK_WEIGHT_FLOOD_HAZARD = float(os.getenv('RISK_WEIGHT_FLOOD_HAZARD', 15.0))
+RISK_WEIGHT_HEAVY_RAINFALL = float(os.getenv('RISK_WEIGHT_HEAVY_RAINFALL', 25.0))
+RISK_WEIGHT_WEATHER_WARNING = float(os.getenv('RISK_WEIGHT_WEATHER_WARNING', 10.0))
+
+RISK_RAINFALL_MIN_MM = float(os.getenv('RISK_RAINFALL_MIN_MM', 20.0))
+RISK_RAINFALL_MAX_MM = float(os.getenv('RISK_RAINFALL_MAX_MM', 50.0))
+
+RISK_THRESHOLD_LOW_MAX = float(os.getenv('RISK_THRESHOLD_LOW_MAX', 39.0))
+RISK_THRESHOLD_MEDIUM_MAX = float(os.getenv('RISK_THRESHOLD_MEDIUM_MAX', 69.0))
+
+# Route Optimization Engine Configuration (apps.intelligence)
+OPTIMIZATION_DISTANCE_WEIGHT = float(os.getenv('OPTIMIZATION_DISTANCE_WEIGHT', 0.60))
+OPTIMIZATION_RISK_WEIGHT = float(os.getenv('OPTIMIZATION_RISK_WEIGHT', 0.40))
+
 

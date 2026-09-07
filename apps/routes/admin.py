@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.gis.admin import GISModelAdmin
-from .models import District, Infrastructure
+from .models import District, Infrastructure, WeatherSnapshot
 
 
 @admin.register(District)
@@ -27,3 +27,11 @@ class InfrastructureAdmin(GISModelAdmin):
     list_filter = ('infra_type', 'road_classification', 'status', 'risk_level', 'district')
     search_fields = ('name', 'start_node', 'end_node')
     readonly_fields = ('last_assessed_at',)
+
+
+@admin.register(WeatherSnapshot)
+class WeatherSnapshotAdmin(admin.ModelAdmin):
+    list_display = ('district', 'condition', 'rainfall_mm', 'temperature_c', 'humidity_pct', 'wind_speed_kmh', 'weather_warning', 'recorded_at')
+    list_filter = ('condition', 'weather_warning', 'district')
+    search_fields = ('district__name',)
+    readonly_fields = ('created_at',)

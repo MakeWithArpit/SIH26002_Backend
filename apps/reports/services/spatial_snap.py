@@ -40,7 +40,8 @@ def snap(report: IncidentReport) -> None:
         report.snapped_infrastructure = nearest
         report.save(update_fields=['snapped_infrastructure'])
         # Recalculate disruption risk with this newly associated incident report
-        RiskPredictionService.assess_and_update(nearest)
+        from apps.intelligence.services.risk.engine import RiskEngine
+        RiskEngine.assess_and_update(nearest)
         logger.info(
             'Report %s snapped to %s (id=%s). Risk updated to %s (%s).',
             report.pk,
