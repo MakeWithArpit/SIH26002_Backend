@@ -178,6 +178,21 @@ CORS_ALLOWED_ORIGINS = [
 ]
 CORS_ALLOW_CREDENTIALS = True
 
+# CSRF Trusted Origins (Required for Cloudflare Tunnel, Ngrok, and Remote Access)
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv(
+        'CSRF_TRUSTED_ORIGINS',
+        'http://localhost:8000,http://127.0.0.1:8000,https://*.trycloudflare.com'
+    ).split(',')
+    if origin.strip()
+]
+
+# Reverse Proxy / Cloudflare Tunnel SSL Header
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+
+
 # Geospatial / Landslide Static Enrichment Configuration
 # Note: The 500m proximity threshold is an MVP configuration parameter, not a scientifically validated risk threshold.
 LANDSLIDE_PROXIMITY_THRESHOLD_M = float(os.getenv('LANDSLIDE_PROXIMITY_THRESHOLD_M', 500.0))
