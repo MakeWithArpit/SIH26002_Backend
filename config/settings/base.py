@@ -177,3 +177,15 @@ CORS_ALLOWED_ORIGINS = [
     if origin.strip()
 ]
 CORS_ALLOW_CREDENTIALS = True
+
+# Geospatial / Landslide Static Enrichment Configuration
+# Note: The 500m proximity threshold is an MVP configuration parameter, not a scientifically validated risk threshold.
+LANDSLIDE_PROXIMITY_THRESHOLD_M = float(os.getenv('LANDSLIDE_PROXIMITY_THRESHOLD_M', 500.0))
+LANDSLIDE_METRIC_SRID = int(os.getenv('LANDSLIDE_METRIC_SRID', 32646))
+LANDSLIDE_INVENTORY_PATH = BASE_DIR / os.getenv(
+    'LANDSLIDE_INVENTORY_PATH', 'data/geospatial/gsi/landslide_inventory.geojson'
+)
+LANDSLIDE_SUSCEPTIBILITY_PATH = BASE_DIR / os.getenv(
+    'LANDSLIDE_SUSCEPTIBILITY_PATH', 'data/geospatial/gsi/landslide_susceptibility_demo.geojson'
+)
+

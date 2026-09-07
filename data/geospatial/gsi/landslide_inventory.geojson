@@ -1,0 +1,428 @@
+{
+  "type": "FeatureCollection",
+  "name": "GSI_NER3965_Landslide_Inventory",
+  "crs": {
+    "type": "name",
+    "properties": {
+      "name": "urn:ogc:def:crs:OGC:1.3:CRS84"
+    }
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 1,
+        "slide_no": "MEG/EKH/78O15/2024-25/01",
+        "name": "Laitlyngkot slide 1",
+        "locality": "South of Laitlyngkot",
+        "state": "Meghalaya",
+        "district": "East Khasi Hills",
+        "toposheet": "78O/15",
+        "material": "Rock",
+        "movement": "Slide",
+        "movement_rate": "Rapid",
+        "activity": "Active",
+        "distribution": "Widening",
+        "history": "2023",
+        "source": "GSI NER-3965, Annexure-II"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          91.85619,
+          25.43669
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 2,
+        "slide_no": "MEG/EKH/78O15/2024-25/02",
+        "name": "Lait Mawiong slide 1",
+        "locality": "80m NW of Lait Mawiong",
+        "state": "Meghalaya",
+        "district": "East Khasi Hills",
+        "toposheet": "78O/15",
+        "material": "Debris",
+        "movement": "Slide",
+        "movement_rate": "Very rapid",
+        "activity": "Active",
+        "distribution": "Retrogressive",
+        "history": null,
+        "source": "GSI NER-3965, Annexure-II"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          91.86775,
+          25.42233
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 3,
+        "slide_no": "MEG/EKH/78O15/2024-25/03",
+        "name": "Massar slide 1",
+        "locality": "4 km NE of Massar village",
+        "state": "Meghalaya",
+        "district": "East Khasi Hills",
+        "toposheet": "78O/15",
+        "material": "Debris",
+        "movement": "Slide",
+        "movement_rate": "Rapid",
+        "activity": "Reactivated",
+        "distribution": "Retrogressive",
+        "history": "2022",
+        "source": "GSI NER-3965, Annexure-II"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          91.86078,
+          25.38822
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 4,
+        "slide_no": "MEG/EKH/78O15/2024-25/04",
+        "name": "Massar slide 2",
+        "locality": "4 km NE of Massar village",
+        "state": "Meghalaya",
+        "district": "East Khasi Hills",
+        "toposheet": "78O/15",
+        "material": "Rock",
+        "movement": "Slide",
+        "movement_rate": "Very rapid",
+        "activity": "Active",
+        "distribution": "Retrogressive",
+        "history": null,
+        "source": "GSI NER-3965, Annexure-II"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          91.86081,
+          25.38786
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 5,
+        "slide_no": "MEG/EKH/78O15/2024-25/05",
+        "name": "Massar slide 3",
+        "locality": "3 km NE of Massar village",
+        "state": "Meghalaya",
+        "district": "East Khasi Hills",
+        "toposheet": "78O/15",
+        "material": "Rock",
+        "movement": "Slide",
+        "movement_rate": "Very rapid",
+        "activity": "Active",
+        "distribution": "Retrogressive",
+        "history": null,
+        "source": "GSI NER-3965, Annexure-II"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          91.86119,
+          25.38583
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 6,
+        "slide_no": "MEG/EKH/78O15/2024-25/06",
+        "name": "Massar slide 4",
+        "locality": "3 km NE of Massar village",
+        "state": "Meghalaya",
+        "district": "East Khasi Hills",
+        "toposheet": "78O/15",
+        "material": "Debris",
+        "movement": "Slide",
+        "movement_rate": "Rapid",
+        "activity": "Suspended",
+        "distribution": "Retrogressive",
+        "history": null,
+        "source": "GSI NER-3965, Annexure-II"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          91.85956,
+          25.38225
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 7,
+        "slide_no": "MEG/EKH/78O15/2024-25/07",
+        "name": "Massar slide 5",
+        "locality": "3 km NE of Massar village",
+        "state": "Meghalaya",
+        "district": "East Khasi Hills",
+        "toposheet": "78O/15",
+        "material": "Rock",
+        "movement": "Slide",
+        "movement_rate": "Rapid",
+        "activity": "Active",
+        "distribution": "Retrogressive",
+        "history": "2024",
+        "source": "GSI NER-3965, Annexure-II"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          91.85942,
+          25.38217
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 8,
+        "slide_no": "MEG/EKH/78O15/2024-25/08",
+        "name": "Massar slide 6",
+        "locality": "1 km W of Massar village",
+        "state": "Meghalaya",
+        "district": "East Khasi Hills",
+        "toposheet": "78O/15",
+        "material": "Rock",
+        "movement": "Slide",
+        "movement_rate": "Very rapid",
+        "activity": "Active",
+        "distribution": "Retrogressive",
+        "history": "2024",
+        "source": "GSI NER-3965, Annexure-II"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          91.85333,
+          25.37842
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 9,
+        "slide_no": "MEG/EKH/78O15/2024-25/09",
+        "name": "Mawkajem slide 1",
+        "locality": "400m S of Mawkajem village",
+        "state": "Meghalaya",
+        "district": "East Khasi Hills",
+        "toposheet": "78O/15",
+        "material": "Rock",
+        "movement": "Slide",
+        "movement_rate": "Rapid",
+        "activity": "Active",
+        "distribution": "Confined",
+        "history": "2024",
+        "source": "GSI NER-3965, Annexure-II"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          91.87256,
+          25.39567
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 10,
+        "slide_no": "MEG/EKH/78O15/2024-25/10",
+        "name": "Massar slide 7",
+        "locality": "5 km NE of Massar village",
+        "state": "Meghalaya",
+        "district": "East Khasi Hills",
+        "toposheet": "78O/15",
+        "material": "Debris",
+        "movement": "Slide",
+        "movement_rate": "Rapid",
+        "activity": "Active",
+        "distribution": "Retrogressive",
+        "history": "2024",
+        "source": "GSI NER-3965, Annexure-II"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          91.864,
+          25.38967
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 11,
+        "slide_no": "MEG/EKH/78O15/2024-25/11",
+        "name": "Dymmiew slide 1",
+        "locality": "250m N of Dymmiew village",
+        "state": "Meghalaya",
+        "district": "East Khasi Hills",
+        "toposheet": "78O/15",
+        "material": "Debris",
+        "movement": "Slide",
+        "movement_rate": "Rapid",
+        "activity": "Active",
+        "distribution": "Retrogressive",
+        "history": "2024",
+        "source": "GSI NER-3965, Annexure-II"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          91.86736,
+          25.38256
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 12,
+        "slide_no": "MEG/EKH/78O15/2024-25/12",
+        "name": "Massar slide 8",
+        "locality": "5 km NE of Massar village",
+        "state": "Meghalaya",
+        "district": "East Khasi Hills",
+        "toposheet": "78O/15",
+        "material": "Debris",
+        "movement": "Slide",
+        "movement_rate": "Rapid",
+        "activity": "Active",
+        "distribution": "Retrogressive",
+        "history": "2024",
+        "source": "GSI NER-3965, Annexure-II"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          91.86386,
+          25.38911
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 13,
+        "slide_no": "MEG/EKH/78O15/2024-25/13",
+        "name": "Dymmiew slide 2",
+        "locality": "2 km S of Dymmiew village",
+        "state": "Meghalaya",
+        "district": "East Khasi Hills",
+        "toposheet": "78O/15",
+        "material": "Debris",
+        "movement": "Slide",
+        "movement_rate": "Rapid",
+        "activity": "Active",
+        "distribution": "Retrogressive",
+        "history": "2024",
+        "source": "GSI NER-3965, Annexure-II"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          91.86167,
+          25.37125
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 14,
+        "slide_no": "MEG/EKH/78O15/2024-25/14",
+        "name": "Langkyrdem slide 1",
+        "locality": "1 km W of Langkyrdem",
+        "state": "Meghalaya",
+        "district": "East Khasi Hills",
+        "toposheet": "78O/15",
+        "material": "Debris",
+        "movement": "Slide",
+        "movement_rate": "Rapid",
+        "activity": "Active",
+        "distribution": "Retrogressive",
+        "history": "2024",
+        "source": "GSI NER-3965, Annexure-II"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          91.88008,
+          25.36183
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 15,
+        "slide_no": "MEG/EKH/78O15/2024-25/15",
+        "name": "Dymmiew slide 3",
+        "locality": "2 km S of Dymmiew village",
+        "state": "Meghalaya",
+        "district": "East Khasi Hills",
+        "toposheet": "78O/15",
+        "material": "Debris",
+        "movement": "Slide",
+        "movement_rate": "Rapid",
+        "activity": "Active",
+        "distribution": "Widening",
+        "history": "2024",
+        "source": "GSI NER-3965, Annexure-II"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          91.86131,
+          25.37156
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 16,
+        "slide_no": "MEG/EKH/78O15/2024-25/16",
+        "name": "Urksew slide 1",
+        "locality": "Urksew village",
+        "state": "Meghalaya",
+        "district": "East Khasi Hills",
+        "toposheet": "78O/15",
+        "material": "Earth",
+        "movement": "Slide",
+        "movement_rate": "Rapid",
+        "activity": "Active",
+        "distribution": "Retrogressive",
+        "history": "2024",
+        "source": "GSI NER-3965, Annexure-II"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          91.90872,
+          25.29967
+        ]
+      }
+    }
+  ]
+}

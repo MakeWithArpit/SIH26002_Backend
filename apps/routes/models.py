@@ -93,9 +93,18 @@ class Infrastructure(models.Model):
     )
     geom = models.LineStringField(srid=4326, geography=True)
 
-    # Graph connectivity nodes for routing
-    start_node = models.CharField(max_length=100, db_index=True)
-    end_node = models.CharField(max_length=100, db_index=True)
+    # Graph connectivity nodes for routing (OSM node IDs)
+    start_node = models.BigIntegerField(db_index=True)
+    end_node = models.BigIntegerField(db_index=True)
+    oneway = models.BooleanField(default=False)
+    osm_way_id = models.BigIntegerField(null=True, blank=True, help_text="OSM way ID for source provenance")
+    osm_segment_id = models.CharField(
+        max_length=255, 
+        unique=True, 
+        null=True, 
+        blank=True, 
+        help_text="Deterministic OSM identity: {way_id}-{min_node}-{max_node}-{key}"
+    )
 
     # Physical properties
     length_km = models.FloatField(default=0.0)
@@ -122,6 +131,19 @@ class Infrastructure(models.Model):
         default=HazardLevel.LOW,
     )
     historical_landslide_count = models.PositiveIntegerField(default=0)
+    landslide_nearest_distance_m = models.FloatField(
+        null=True,
+        blank=True,
+        help_text="Distance in meters to nearest historical landslide record.",
+    )
+    landslide_nearby_count = models.PositiveIntegerField(
+        default=0,
+        help_text="Number of historical landslide records within the configured proximity threshold.",
+    )
+    landslide_zone_member = models.BooleanField(
+        default=False,
+        help_text="Whether the Infrastructure geometry intersects a susceptibility zone.",
+    )
     flood_hazard_zone = models.CharField(
         max_length=10,
         choices=HazardLevel.choices,

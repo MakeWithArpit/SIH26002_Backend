@@ -146,6 +146,9 @@ class CalculateRouteView(viewsets.views.APIView):
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
+        if request.query_params.get('reload_graph') == 'true':
+            RoadNetworkGraphService.clear_graph_cache()
+
         # Determine origin node
         origin_node = data.get('origin_node')
         if not origin_node:
@@ -248,6 +251,9 @@ class SimulatePipelineView(viewsets.views.APIView):
 
         snap(report)
         report.refresh_from_db()
+
+        # Invalidate graph cache as infrastructure risk or status may have changed
+        RoadNetworkGraphService.clear_graph_cache()
 
         try:
             after_candidates = RoadNetworkGraphService.generate_candidate_routes(origin_node, destination_node)

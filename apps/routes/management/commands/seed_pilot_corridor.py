@@ -16,6 +16,7 @@ from apps.routes.models import (
     PhysicalCondition,
 )
 from apps.routes.services.risk import RiskPredictionService
+from apps.routes.services.routing.graph import RoadNetworkGraphService
 
 
 class Command(BaseCommand):
@@ -69,8 +70,9 @@ class Command(BaseCommand):
                 'district': districts['Kamrup Metropolitan'],
                 'infra_type': InfrastructureType.ROAD,
                 'road_classification': RoadClassification.NATIONAL_HIGHWAY,
-                'start_node': 'GUW_CITY',
-                'end_node': 'GUW_JORABAT',
+                'start_node': 1001,
+                'end_node': 1002,
+                'oneway': False,
                 'length_km': 16.5,
                 'base_speed_kmh': 55.0,
                 'landslide_susceptibility': HazardLevel.LOW,
@@ -88,8 +90,9 @@ class Command(BaseCommand):
                 'district': districts['Ri-Bhoi'],
                 'infra_type': InfrastructureType.ROAD,
                 'road_classification': RoadClassification.NATIONAL_HIGHWAY,
-                'start_node': 'GUW_JORABAT',
-                'end_node': 'MEG_NONGPOH',
+                'start_node': 1002,
+                'end_node': 1003,
+                'oneway': False,
                 'length_km': 34.0,
                 'base_speed_kmh': 45.0,
                 'landslide_susceptibility': HazardLevel.HIGH,
@@ -107,8 +110,9 @@ class Command(BaseCommand):
                 'district': districts['Ri-Bhoi'],
                 'infra_type': InfrastructureType.BRIDGE,
                 'road_classification': RoadClassification.NATIONAL_HIGHWAY,
-                'start_node': 'MEG_UMRAN_NORTH',
-                'end_node': 'MEG_UMRAN_SOUTH',
+                'start_node': 1003,
+                'end_node': 1004,
+                'oneway': False,
                 'length_km': 0.8,
                 'base_speed_kmh': 35.0,
                 'landslide_susceptibility': HazardLevel.MEDIUM,
@@ -126,8 +130,9 @@ class Command(BaseCommand):
                 'district': districts['Ri-Bhoi'],
                 'infra_type': InfrastructureType.ROAD,
                 'road_classification': RoadClassification.NATIONAL_HIGHWAY,
-                'start_node': 'MEG_NONGPOH',
-                'end_node': 'MEG_UMIAM',
+                'start_node': 1004,
+                'end_node': 1005,
+                'oneway': False,
                 'length_km': 32.5,
                 'base_speed_kmh': 40.0,
                 'landslide_susceptibility': HazardLevel.HIGH,
@@ -145,8 +150,9 @@ class Command(BaseCommand):
                 'district': districts['East Khasi Hills'],
                 'infra_type': InfrastructureType.ROAD,
                 'road_classification': RoadClassification.NATIONAL_HIGHWAY,
-                'start_node': 'MEG_UMIAM',
-                'end_node': 'MEG_SHILLONG',
+                'start_node': 1005,
+                'end_node': 1006,
+                'oneway': False,
                 'length_km': 15.2,
                 'base_speed_kmh': 35.0,
                 'landslide_susceptibility': HazardLevel.MEDIUM,
@@ -165,8 +171,9 @@ class Command(BaseCommand):
                 'district': districts['East Khasi Hills'],
                 'infra_type': InfrastructureType.ROAD,
                 'road_classification': RoadClassification.STATE_HIGHWAY,
-                'start_node': 'MEG_UMIAM',
-                'end_node': 'MEG_SHILLONG',
+                'start_node': 1005,
+                'end_node': 1006,
+                'oneway': False,
                 'length_km': 22.0,
                 'base_speed_kmh': 50.0,
                 'landslide_susceptibility': HazardLevel.LOW,
@@ -177,6 +184,24 @@ class Command(BaseCommand):
                     (91.9500, 25.6500),
                     (91.9600, 25.6000),
                     (91.8933, 25.5788),
+                ]),
+            },
+            {
+                'name': 'One-Way Hill Connector',
+                'district': districts['East Khasi Hills'],
+                'infra_type': InfrastructureType.ROAD,
+                'road_classification': RoadClassification.MAJOR_DISTRICT_ROAD,
+                'start_node': 1002,
+                'end_node': 1004,
+                'oneway': True,
+                'length_km': 10.0,
+                'base_speed_kmh': 30.0,
+                'landslide_susceptibility': HazardLevel.HIGH,
+                'flood_hazard_zone': HazardLevel.LOW,
+                'historical_landslide_count': 1,
+                'geom': LineString([
+                    (91.8650, 26.1030),
+                    (91.8770, 25.8200),
                 ]),
             },
         ]
@@ -194,6 +219,7 @@ class Command(BaseCommand):
                 f"  - Infrastructure: {infra.name} | Risk: {infra.risk_level.upper()} ({infra.risk_score})"
             )
 
+        RoadNetworkGraphService.clear_graph_cache()
         self.stdout.write(
             self.style.SUCCESS(f'Successfully seeded {len(districts)} districts and {count} road segments.')
         )

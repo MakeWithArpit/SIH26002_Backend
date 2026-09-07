@@ -61,8 +61,8 @@ class Phase2RoadNetworkAndRiskTests(TestCase):
             name='NH-06 Test Segment 1',
             infra_type=InfrastructureType.ROAD,
             road_classification=RoadClassification.NATIONAL_HIGHWAY,
-            start_node='N1',
-            end_node='N2',
+            start_node=1001,
+            end_node=1002,
             length_km=10.0,
             base_speed_kmh=50.0,
             landslide_susceptibility=HazardLevel.LOW,
@@ -80,8 +80,8 @@ class Phase2RoadNetworkAndRiskTests(TestCase):
             name='NH-06 Steep Mountain Pass',
             infra_type=InfrastructureType.ROAD,
             road_classification=RoadClassification.NATIONAL_HIGHWAY,
-            start_node='N2',
-            end_node='N3',
+            start_node=1002,
+            end_node=1003,
             length_km=25.0,
             base_speed_kmh=40.0,
             landslide_susceptibility=HazardLevel.HIGH,
@@ -99,8 +99,8 @@ class Phase2RoadNetworkAndRiskTests(TestCase):
             name='Test Safe Detour Bypass',
             infra_type=InfrastructureType.ROAD,
             road_classification=RoadClassification.STATE_HIGHWAY,
-            start_node='N1',
-            end_node='N3',
+            start_node=1001,
+            end_node=1003,
             length_km=38.0,
             base_speed_kmh=50.0,
             landslide_susceptibility=HazardLevel.LOW,
@@ -212,15 +212,15 @@ class Phase2RoadNetworkAndRiskTests(TestCase):
         """
         self.client.force_authenticate(user=self.normal_user)
         payload = {
-            'origin_node': 'N1',
-            'destination_node': 'N3',
+            'origin_node': 1001,
+            'destination_node': 1003,
         }
         res = self.client.post('/api/v1/routes/calculate/', payload, format='json')
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         data = res.json()['data']
 
-        self.assertEqual(data['origin_node'], 'N1')
-        self.assertEqual(data['destination_node'], 'N3')
+        self.assertEqual(data['origin_node'], 1001)
+        self.assertEqual(data['destination_node'], 1003)
         routes = data['routes']
         self.assertGreaterEqual(len(routes), 2)
 
@@ -251,7 +251,7 @@ class Phase2RoadNetworkAndRiskTests(TestCase):
         RiskPredictionService.assess_and_update(self.seg2)
 
         self.client.force_authenticate(user=self.normal_user)
-        payload = {'origin_node': 'N1', 'destination_node': 'N3'}
+        payload = {'origin_node': 1001, 'destination_node': 1003}
         res = self.client.post('/api/v1/routes/calculate/', payload, format='json')
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         routes = res.json()['data']['routes']
@@ -275,12 +275,12 @@ class Phase2RoadNetworkAndRiskTests(TestCase):
         res = self.client.post('/api/v1/routes/calculate/', payload, format='json')
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         data = res.json()['data']
-        self.assertEqual(data['origin_node'], 'N1')
-        self.assertEqual(data['destination_node'], 'N3')
+        self.assertEqual(data['origin_node'], 1001)
+        self.assertEqual(data['destination_node'], 1003)
         self.assertGreaterEqual(len(data['routes']), 1)
         self.assertIn('polyline', data['routes'][0])
 
     def test_route_calculation_unauthenticated_rejected(self):
-        res = self.client.post('/api/v1/routes/calculate/', {'origin_node': 'N1', 'destination_node': 'N3'})
+        res = self.client.post('/api/v1/routes/calculate/', {'origin_node': 1001, 'destination_node': 1003})
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 

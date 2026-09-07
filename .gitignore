@@ -33,3 +33,6 @@ staticfiles/
 # OS
 .DS_Store
 Thumbs.db
+
+#local files
+.docs/

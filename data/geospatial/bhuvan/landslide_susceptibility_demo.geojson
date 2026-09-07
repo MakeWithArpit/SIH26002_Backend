@@ -1,0 +1,234 @@
+{
+  "type": "FeatureCollection",
+  "name": "GSI_NER3965_Landslide_Susceptibility_Demo",
+  "crs": {
+    "type": "name",
+    "properties": {
+      "name": "urn:ogc:def:crs:OGC:1.3:CRS84"
+    }
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "LSM-H-01",
+        "name": "Lait Mawiong representative high zone",
+        "susceptibility_class": "High",
+        "source": "GSI NER-3965 Figure 5.8 / Plate-I",
+        "geometry_basis": "manual representative demo polygon around documented locality; approximate, not original GSI boundary"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              91.86375,
+              25.418329999999997
+            ],
+            [
+              91.87175,
+              25.418329999999997
+            ],
+            [
+              91.87175,
+              25.42633
+            ],
+            [
+              91.86375,
+              25.42633
+            ],
+            [
+              91.86375,
+              25.418329999999997
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "LSM-H-02",
+        "name": "Mawkajem representative high zone",
+        "susceptibility_class": "High",
+        "source": "GSI NER-3965 Figure 5.8 / Plate-I",
+        "geometry_basis": "manual representative demo polygon around documented locality; approximate, not original GSI boundary"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              91.86855999999999,
+              25.391669999999998
+            ],
+            [
+              91.87656,
+              25.391669999999998
+            ],
+            [
+              91.87656,
+              25.39967
+            ],
+            [
+              91.86855999999999,
+              25.39967
+            ],
+            [
+              91.86855999999999,
+              25.391669999999998
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "LSM-H-03",
+        "name": "Dymmiew representative high zone",
+        "susceptibility_class": "High",
+        "source": "GSI NER-3965 Figure 5.8 / Plate-I",
+        "geometry_basis": "manual representative demo polygon around documented locality; approximate, not original GSI boundary"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              91.85749,
+              25.3674
+            ],
+            [
+              91.86549000000001,
+              25.3674
+            ],
+            [
+              91.86549000000001,
+              25.375400000000003
+            ],
+            [
+              91.85749,
+              25.375400000000003
+            ],
+            [
+              91.85749,
+              25.3674
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "LSM-H-04",
+        "name": "Langkyrdem representative high zone",
+        "susceptibility_class": "High",
+        "source": "GSI NER-3965 Figure 5.8 / Plate-I",
+        "geometry_basis": "manual representative demo polygon around documented locality; approximate, not original GSI boundary"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              91.87608,
+              25.35783
+            ],
+            [
+              91.88408000000001,
+              25.35783
+            ],
+            [
+              91.88408000000001,
+              25.365830000000003
+            ],
+            [
+              91.87608,
+              25.365830000000003
+            ],
+            [
+              91.87608,
+              25.35783
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "LSM-M-01",
+        "name": "Massar representative moderate zone",
+        "susceptibility_class": "Moderate",
+        "source": "GSI NER-3965 Figure 5.8 / Plate-I",
+        "geometry_basis": "manual representative demo polygon around documented locality; approximate, not original GSI boundary"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              91.85718999999999,
+              25.381829999999997
+            ],
+            [
+              91.86519,
+              25.381829999999997
+            ],
+            [
+              91.86519,
+              25.38983
+            ],
+            [
+              91.85718999999999,
+              25.38983
+            ],
+            [
+              91.85718999999999,
+              25.381829999999997
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "LSM-L-01",
+        "name": "Urksew representative low/demo zone",
+        "susceptibility_class": "Low",
+        "source": "GSI NER-3965 Figure 5.8 / Plate-I",
+        "geometry_basis": "manual representative demo polygon around documented locality; approximate, not original GSI boundary"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              91.90472,
+              25.295669999999998
+            ],
+            [
+              91.91272000000001,
+              25.295669999999998
+            ],
+            [
+              91.91272000000001,
+              25.30367
+            ],
+            [
+              91.90472,
+              25.30367
+            ],
+            [
+              91.90472,
+              25.295669999999998
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

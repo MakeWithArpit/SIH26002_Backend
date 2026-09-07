@@ -6,9 +6,10 @@ Builds graph from Infrastructure segments and calculates:
 2. Safest Path (risk-penalized edge weights)
 Produces ephemeral RouteCandidate objects (never stored in DB).
 """
+import heapq
 import logging
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple, Set
 import networkx as nx
 from django.contrib.gis.geos import Point
 from django.contrib.gis.db.models.functions import Distance
@@ -51,50 +52,91 @@ class RouteCandidate:
 
 
 class RoadNetworkGraphService:
+    _cached_graph: Optional[nx.MultiDiGraph] = None
+
     @classmethod
-    def build_graph(cls) -> nx.Graph:
+    def get_graph(cls, force_reload: bool = False) -> nx.MultiDiGraph:
         """
-        Construct a NetworkX graph from all active Infrastructure segments.
+        Retrieve the cached road network MultiDiGraph.
+        If cache is empty or force_reload is True, builds and stores the graph.
         """
-        graph = nx.Graph()
+        if cls._cached_graph is None or force_reload:
+            cls._cached_graph = cls.build_graph()
+        return cls._cached_graph
+
+    @classmethod
+    def clear_graph_cache(cls) -> None:
+        """
+        Clear the in-memory graph cache completely.
+        """
+        cls._cached_graph = None
+
+    @classmethod
+    def reload_graph(cls) -> nx.MultiDiGraph:
+        """
+        Clear existing cache, rebuild from current Infrastructure data,
+        cache and return the new graph.
+        """
+        cls.clear_graph_cache()
+        return cls.get_graph()
+
+    @classmethod
+    def build_graph(cls) -> nx.MultiDiGraph:
+        """
+        Construct a NetworkX MultiDiGraph from all active Infrastructure segments.
+        Blocked segments are strictly excluded from candidate routing.
+        """
+        graph = nx.MultiDiGraph()
         infrastructures = Infrastructure.objects.select_related('district').all()
 
         for infra in infrastructures:
-            # Edge weight for safest path calculation
-            # Multiplier increases drastically with risk score
-            # Score 0 -> mult 1.0; Score 50 -> mult 4.3; Score 90 -> mult 7.0
-            risk_multiplier = 1.0 + (infra.risk_score / 15.0)
+            # BLOCKED ROADS: strictly exclude them from graph-level routing
             if infra.status == 'blocked':
-                risk_multiplier *= 100.0
+                continue
 
-            safest_weight = infra.length_km * risk_multiplier
-
-            # PostGIS coords to lat/lng list [[lat, lng], ...]
             coords = []
             if infra.geom:
                 coords = [[pt[1], pt[0]] for pt in infra.geom.coords]
 
+            length = infra.length_km if infra.length_km > 0 else 0.001
+
             edge_data = {
-                'id': infra.id,
-                'name': infra.name,
-                'infra_type': infra.infra_type,
-                'road_classification': infra.road_classification,
-                'length_km': infra.length_km,
+                'infrastructure_id': infra.id,
+                'distance_km': infra.length_km,
                 'base_travel_time_min': infra.base_travel_time_min,
+                'road_type': infra.road_classification,
+                'geometry': infra.geom.wkt if infra.geom else None,
                 'risk_score': infra.risk_score,
                 'risk_level': infra.risk_level,
                 'status': infra.status,
+                'oneway': infra.oneway,
+                
+                # Metadata & routing fields
+                'id': infra.id,
+                'name': infra.name,
                 'coords': coords,
-                'weight_distance': infra.length_km,
-                'weight_safest': safest_weight,
+                'weight_distance': length,
             }
 
-            graph.add_edge(infra.start_node, infra.end_node, **edge_data)
+            # Add nodes with their coordinates
+            if coords:
+                start_coord = coords[0]
+                end_coord = coords[-1]
+                graph.add_node(infra.start_node, x=start_coord[1], y=start_coord[0])
+                graph.add_node(infra.end_node, x=end_coord[1], y=end_coord[0])
+
+            graph.add_edge(infra.start_node, infra.end_node, key=infra.id, **edge_data)
+            
+            if not infra.oneway:
+                rev_coords = list(reversed(coords))
+                rev_edge_data = edge_data.copy()
+                rev_edge_data['coords'] = rev_coords
+                graph.add_edge(infra.end_node, infra.start_node, key=infra.id, **rev_edge_data)
 
         return graph
 
     @classmethod
-    def find_nearest_node(cls, lat: float, lng: float) -> Optional[str]:
+    def find_nearest_node(cls, lat: float, lng: float) -> Optional[int]:
         """
         Find the closest road graph node to the given coordinates.
         """
@@ -106,7 +148,6 @@ class RoadNetworkGraphService:
         if not nearest_infra or not nearest_infra.geom:
             return None
 
-        # Compare distance from point to start vs end coordinate of the LineString
         coords = nearest_infra.geom.coords
         start_pt = Point(coords[0][0], coords[0][1], srid=4326)
         end_pt = Point(coords[-1][0], coords[-1][1], srid=4326)
@@ -117,9 +158,154 @@ class RoadNetworkGraphService:
         return nearest_infra.start_node if dist_to_start <= dist_to_end else nearest_infra.end_node
 
     @classmethod
-    def _assemble_route(cls, graph: nx.Graph, path_nodes: List[str], route_id: str, name: str) -> RouteCandidate:
+    def _dijkstra_multigraph(
+        cls,
+        graph: nx.MultiDiGraph,
+        source: Any,
+        target: Any,
+        weight: str = 'weight_distance',
+        excluded_nodes: Optional[Set[Any]] = None,
+        excluded_edges: Optional[Set[Tuple[Any, Any, Any]]] = None,
+    ) -> Tuple[Optional[float], Optional[List[Tuple[Any, Any, Any]]]]:
         """
-        Assemble a RouteCandidate from an ordered sequence of node IDs.
+        Dijkstra shortest path on MultiDiGraph preserving exact (u, v, key) edges.
+        Does not mutate the graph; respects excluded_nodes and excluded_edges.
+        """
+        if excluded_nodes is None:
+            excluded_nodes = set()
+        if excluded_edges is None:
+            excluded_edges = set()
+
+        if source in excluded_nodes or target in excluded_nodes:
+            return None, None
+
+        heap = [(0.0, 0, source)]
+        counter = 0
+        dist = {source: 0.0}
+        parent = {source: None}  # node -> (predecessor_node, edge_key)
+
+        while heap:
+            d, _, u = heapq.heappop(heap)
+            if d > dist[u]:
+                continue
+            if u == target:
+                break
+
+            for v in graph[u]:
+                if v in excluded_nodes:
+                    continue
+                for key, data in graph[u][v].items():
+                    if (u, v, key) in excluded_edges:
+                        continue
+                    w = data.get(weight, 1.0)
+                    new_d = d + w
+                    if v not in dist or new_d < dist[v]:
+                        dist[v] = new_d
+                        parent[v] = (u, key)
+                        counter += 1
+                        heapq.heappush(heap, (new_d, counter, v))
+
+        if target not in dist:
+            return None, None
+
+        # Reconstruct exact (u, v, key) edge path
+        curr = target
+        path = []
+        while parent[curr] is not None:
+            p, k = parent[curr]
+            path.append((p, curr, k))
+            curr = p
+        path.reverse()
+        return dist[target], path
+
+    @classmethod
+    def find_k_shortest_paths(
+        cls,
+        graph: nx.MultiDiGraph,
+        source: Any,
+        target: Any,
+        K: int = 3,
+        weight: str = 'weight_distance',
+    ) -> List[List[Tuple[Any, Any, Any]]]:
+        """
+        Yen's K-shortest simple paths algorithm adapted for MultiDiGraph.
+        Returns up to K distinct paths, where each path is a list of (u, v, key) tuples.
+        Distinctness is determined by the physical sequence of edge keys (Infrastructure IDs).
+        """
+        cost, first_path = cls._dijkstra_multigraph(graph, source, target, weight=weight)
+        if first_path is None:
+            return []
+
+        A = [first_path]
+        seen_A = {tuple(e[2] for e in first_path)}
+        B = []  # min-heap of (cost, counter, path)
+        seen_B = set()
+        counter = 0
+
+        for k in range(1, K):
+            prev_path = A[k - 1]
+            nodes = [prev_path[0][0]] + [e[1] for e in prev_path]
+
+            for i in range(len(prev_path)):
+                spur_node = nodes[i]
+                root_path = prev_path[:i]
+                root_cost = sum(
+                    graph[e[0]][e[1]][e[2]].get(weight, 1.0) for e in root_path
+                )
+
+                # Edges that share the same root path prefix must be excluded
+                excluded_edges = set()
+                for p in A:
+                    if len(p) > i and p[:i] == root_path:
+                        excluded_edges.add(p[i])
+
+                # Root nodes (except spur_node) must be excluded to prevent loops
+                excluded_nodes = set(nodes[:i])
+
+                spur_cost, spur_path = cls._dijkstra_multigraph(
+                    graph,
+                    spur_node,
+                    target,
+                    weight=weight,
+                    excluded_nodes=excluded_nodes,
+                    excluded_edges=excluded_edges,
+                )
+
+                if spur_path is not None:
+                    total_path = root_path + spur_path
+                    total_cost = root_cost + spur_cost
+                    sig = tuple(e[2] for e in total_path)
+                    if sig not in seen_B and sig not in seen_A:
+                        counter += 1
+                        heapq.heappush(B, (total_cost, counter, total_path))
+                        seen_B.add(sig)
+
+            found_next = False
+            while B:
+                c, _, next_path = heapq.heappop(B)
+                sig = tuple(e[2] for e in next_path)
+                if sig not in seen_A:
+                    A.append(next_path)
+                    seen_A.add(sig)
+                    found_next = True
+                    break
+
+            if not found_next:
+                break
+
+        return A
+
+    @classmethod
+    def _assemble_candidate_from_edges(
+        cls,
+        graph: nx.MultiDiGraph,
+        edge_path: List[Tuple[Any, Any, Any]],
+        route_id: str,
+        name: str,
+    ) -> RouteCandidate:
+        """
+        Assemble a RouteCandidate directly from the exact (u, v, key) sequence
+        selected by the pathfinding algorithm.
         """
         total_distance = 0.0
         total_eta = 0.0
@@ -127,35 +313,39 @@ class RoadNetworkGraphService:
         combined_polyline = []
         segments_info = []
 
-        for i in range(len(path_nodes) - 1):
-            u, v = path_nodes[i], path_nodes[i + 1]
-            edge = graph[u][v]
+        for u, v, key in edge_path:
+            edge = graph[u][v][key]
 
-            total_distance += edge.get('length_km', 0.0)
-            total_eta += edge.get('base_travel_time_min', 0.0)
-            risk_scores.append(edge.get('risk_score', 0.0))
+            dist = edge.get('distance_km', 0.0)
+            eta = edge.get('base_travel_time_min', 0.0)
+            risk = edge.get('risk_score', 0.0)
+
+            total_distance += dist
+            total_eta += eta
+            risk_scores.append(risk)
 
             segments_info.append({
-                'id': edge.get('id'),
-                'name': edge.get('name'),
-                'length_km': edge.get('length_km'),
-                'risk_score': edge.get('risk_score'),
-                'risk_level': edge.get('risk_level'),
-                'status': edge.get('status'),
+                'id': edge.get('id', key),
+                'name': edge.get('name', ''),
+                'length_km': dist,
+                'risk_score': risk,
+                'risk_level': edge.get('risk_level', 'low'),
+                'status': edge.get('status', 'accessible'),
             })
 
             edge_coords = edge.get('coords', [])
             if edge_coords:
-                # If first segment, add all coords; else skip first to avoid duplicate node
                 if not combined_polyline:
                     combined_polyline.extend(edge_coords)
                 else:
-                    combined_polyline.extend(edge_coords[1:])
+                    if combined_polyline[-1] == edge_coords[0]:
+                        combined_polyline.extend(edge_coords[1:])
+                    else:
+                        combined_polyline.extend(edge_coords)
 
-        # Route-level aggregate risk
+        # Route-level aggregate risk for API compatibility
         max_risk = max(risk_scores) if risk_scores else 0.0
         avg_risk = sum(risk_scores) / len(risk_scores) if risk_scores else 0.0
-        # Weighted aggregate risk (70% max segment risk + 30% average)
         aggregate_risk = (0.7 * max_risk) + (0.3 * avg_risk)
 
         if aggregate_risk >= 66.0 or max_risk >= 80.0:
@@ -168,71 +358,40 @@ class RoadNetworkGraphService:
         return RouteCandidate(
             route_id=route_id,
             name=name,
-            distance_km=total_distance,
-            base_eta_minutes=total_eta,
-            risk_score=aggregate_risk,
+            distance_km=round(total_distance, 2),
+            base_eta_minutes=round(total_eta, 1),
+            risk_score=round(aggregate_risk, 1),
             risk_level=risk_level,
             polyline=combined_polyline,
             segments=segments_info,
         )
 
     @classmethod
-    def generate_candidate_routes(cls, origin_node: str, dest_node: str) -> List[RouteCandidate]:
+    def generate_candidate_routes(cls, origin_node: Any, dest_node: Any) -> List[RouteCandidate]:
         """
-        Generate candidate routes between origin and destination nodes.
-        Returns:
-        - Candidate 1: Shortest Path (by distance)
-        - Candidate 2: Safest Path (risk-penalized edge weights)
-        - Candidate 3: Alternative Path (if distinctly available)
+        Generate up to 3 distinct candidate routes between origin and destination nodes.
+        Uses Yen's K-shortest simple paths on MultiDiGraph (K=3).
+        Route diversity is strictly defined by distinct sequences of physical Infrastructure IDs.
         """
-        graph = cls.build_graph()
+        graph = cls.get_graph()
 
         if origin_node not in graph or dest_node not in graph:
             raise ValueError(f"Origin '{origin_node}' or Destination '{dest_node}' not found in road network graph.")
 
-        if not nx.has_path(graph, origin_node, dest_node):
+        edge_paths = cls.find_k_shortest_paths(
+            graph, origin_node, dest_node, K=3, weight='weight_distance'
+        )
+
+        if not edge_paths:
             raise ValueError(f"No navigable path found between '{origin_node}' and '{dest_node}'.")
 
         candidates = []
-
-        # 1. Shortest path (distance)
-        shortest_path = nx.shortest_path(graph, origin_node, dest_node, weight='weight_distance')
-        candidate_shortest = cls._assemble_route(
-            graph,
-            shortest_path,
-            route_id='route-shortest',
-            name='Direct Highway Route (Shortest)',
-        )
-        candidates.append(candidate_shortest)
-
-        # 2. Safest path (risk-penalized)
-        safest_path = nx.shortest_path(graph, origin_node, dest_node, weight='weight_safest')
-        if safest_path != shortest_path:
-            candidate_safest = cls._assemble_route(
-                graph,
-                safest_path,
-                route_id='route-safe',
-                name='Low-Risk Alternative Route (Safest)',
+        for i, edge_path in enumerate(edge_paths):
+            route_id = f'route-{i + 1}'
+            name = f'Candidate Route {i + 1}'
+            candidate = cls._assemble_candidate_from_edges(
+                graph, edge_path, route_id=route_id, name=name
             )
-            candidates.append(candidate_safest)
-
-        # 3. If shortest and safest are the same, try finding a 2nd alternative path via shortest_simple_paths
-        if len(candidates) == 1:
-            try:
-                paths_gen = nx.shortest_simple_paths(graph, origin_node, dest_node, weight='weight_distance')
-                for i, alt_path in enumerate(paths_gen):
-                    if i == 0:
-                        continue  # skip shortest which we already have
-                    candidate_alt = cls._assemble_route(
-                        graph,
-                        alt_path,
-                        route_id=f'route-alt-{i}',
-                        name=f'Alternative Route {i}',
-                    )
-                    candidates.append(candidate_alt)
-                    if len(candidates) >= 2:
-                        break
-            except Exception as e:
-                logger.debug("No additional alternative simple paths: %s", e)
+            candidates.append(candidate)
 
         return candidates
