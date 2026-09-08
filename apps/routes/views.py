@@ -167,28 +167,32 @@ class CalculateRouteView(viewsets.views.APIView):
         if request.query_params.get('reload_graph') == 'true':
             RoadNetworkGraphService.clear_graph_cache()
 
-        # Determine origin node
+        # Determine origin node with max snapping radius validation
         origin_node = data.get('origin_node')
         if not origin_node:
             origin_node = RoadNetworkGraphService.find_nearest_node(
-                data['origin_lat'], data['origin_lng']
+                data['origin_lat'], data['origin_lng'], max_distance_km=35.0
             )
         elif isinstance(origin_node, str) and origin_node.isdigit():
             origin_node = int(origin_node)
 
-        # Determine destination node
+        # Determine destination node with max snapping radius validation
         dest_node = data.get('destination_node')
         if not dest_node:
             dest_node = RoadNetworkGraphService.find_nearest_node(
-                data['destination_lat'], data['destination_lng']
+                data['destination_lat'], data['destination_lng'], max_distance_km=35.0
             )
         elif isinstance(dest_node, str) and dest_node.isdigit():
             dest_node = int(dest_node)
 
         if not origin_node or not dest_node:
+            unresolved = []
+            if not origin_node:
+                unresolved.append(f"origin ({data.get('origin_lat')}, {data.get('origin_lng')})")
+            if not dest_node:
+                unresolved.append(f"destination ({data.get('destination_lat')}, {data.get('destination_lng')})")
             return standard_response(
-                success=False,
-                message="Could not resolve origin or destination to road network nodes.",
+                message=f"Requested location {' and '.join(unresolved)} is outside the supported road network coverage (max snap radius: 35 km).",
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
         try:

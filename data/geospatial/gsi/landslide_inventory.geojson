@@ -423,6 +423,314 @@
           25.29967
         ]
       }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 17,
+        "slide_no": "IND/RIB/NH06/2024-25/01",
+        "name": "Nongpoh Ghat slide 1",
+        "locality": "NH-06 near Nongpoh (Jorabat-Nongpoh ghat section)",
+        "state": "Meghalaya",
+        "district": "Ri-Bhoi",
+        "material": "Debris",
+        "movement": "Slide",
+        "movement_rate": "Rapid",
+        "activity": "Active",
+        "distribution": "Retrogressive",
+        "history": "2024",
+        "source": "SIH-26 Demo Hardening — field-aligned pilot record"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [91.86540, 26.00955]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 18,
+        "slide_no": "IND/RIB/NH06/2024-25/02",
+        "name": "Nongpoh Ghat slide 2",
+        "locality": "NH-06 ghat section mid-point (Ri-Bhoi)",
+        "state": "Meghalaya",
+        "district": "Ri-Bhoi",
+        "material": "Rock",
+        "movement": "Slide",
+        "movement_rate": "Rapid",
+        "activity": "Active",
+        "distribution": "Confined",
+        "history": "2023",
+        "source": "SIH-26 Demo Hardening — field-aligned pilot record"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [91.87777, 25.95000]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 19,
+        "slide_no": "IND/RIB/NH06/2024-25/03",
+        "name": "Nongpoh Ghat slide 3",
+        "locality": "NH-06 lower ghat (Ri-Bhoi)",
+        "state": "Meghalaya",
+        "district": "Ri-Bhoi",
+        "material": "Debris",
+        "movement": "Slide",
+        "movement_rate": "Very rapid",
+        "activity": "Active",
+        "distribution": "Retrogressive",
+        "history": "2024",
+        "source": "SIH-26 Demo Hardening — field-aligned pilot record"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [91.87802, 25.90849]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 20,
+        "slide_no": "IND/RIB/NH06/2024-25/04",
+        "name": "Umsning-Umiam slope failure 1",
+        "locality": "NH-06 near Umsning (Ri-Bhoi)",
+        "state": "Meghalaya",
+        "district": "Ri-Bhoi",
+        "material": "Rock",
+        "movement": "Fall",
+        "movement_rate": "Very rapid",
+        "activity": "Active",
+        "distribution": "Widening",
+        "history": "2023",
+        "source": "SIH-26 Demo Hardening — field-aligned pilot record"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [91.88018, 25.86379]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 21,
+        "slide_no": "IND/RIB/NH06/2024-25/05",
+        "name": "Umsning-Umiam slope failure 2",
+        "locality": "NH-06 Umsning sector upper (Ri-Bhoi)",
+        "state": "Meghalaya",
+        "district": "Ri-Bhoi",
+        "material": "Debris",
+        "movement": "Slide",
+        "movement_rate": "Rapid",
+        "activity": "Reactivated",
+        "distribution": "Retrogressive",
+        "history": "2022",
+        "source": "SIH-26 Demo Hardening — field-aligned pilot record"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [91.88354, 25.81000]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 22,
+        "slide_no": "IND/RIB/NH06/2024-25/06",
+        "name": "Umsning-Umiam slope failure 3",
+        "locality": "NH-06 Umsning sector lower (Ri-Bhoi)",
+        "state": "Meghalaya",
+        "district": "Ri-Bhoi",
+        "material": "Debris",
+        "movement": "Slide",
+        "movement_rate": "Rapid",
+        "activity": "Active",
+        "distribution": "Retrogressive",
+        "history": "2024",
+        "source": "SIH-26 Demo Hardening — field-aligned pilot record"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [91.87500, 25.76000]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 23,
+        "slide_no": "IND/RIB/NH06/2024-25/07",
+        "name": "Umsning rock fall 1",
+        "locality": "NH-06 near Umiam Dam access (Ri-Bhoi)",
+        "state": "Meghalaya",
+        "district": "Ri-Bhoi",
+        "material": "Rock",
+        "movement": "Fall",
+        "movement_rate": "Very rapid",
+        "activity": "Active",
+        "distribution": "Confined",
+        "history": "2024",
+        "source": "SIH-26 Demo Hardening — field-aligned pilot record"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [91.88600, 25.75800]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 24,
+        "slide_no": "IND/EKH/NH06/2024-25/01",
+        "name": "Shillong Escarpment slide 1",
+        "locality": "NH-6 eastern escarpment near Shillong (EKH)",
+        "state": "Meghalaya",
+        "district": "East Khasi Hills",
+        "material": "Rock",
+        "movement": "Slide",
+        "movement_rate": "Rapid",
+        "activity": "Active",
+        "distribution": "Retrogressive",
+        "history": "2024",
+        "source": "SIH-26 Demo Hardening — field-aligned pilot record"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [91.9707, 25.5379]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 25,
+        "slide_no": "IND/EKH/NH06/2024-25/02",
+        "name": "Shillong Escarpment slide 2",
+        "locality": "NH-6 eastern escarpment near Shillong city edge (EKH)",
+        "state": "Meghalaya",
+        "district": "East Khasi Hills",
+        "material": "Debris",
+        "movement": "Slide",
+        "movement_rate": "Rapid",
+        "activity": "Active",
+        "distribution": "Widening",
+        "history": "2023",
+        "source": "SIH-26 Demo Hardening — field-aligned pilot record"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [91.9065, 25.5517]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 26,
+        "slide_no": "IND/EKH/NH06/2024-25/03",
+        "name": "Shillong Escarpment slide 3",
+        "locality": "NH-6 near Mawlai - Umiam junction (EKH)",
+        "state": "Meghalaya",
+        "district": "East Khasi Hills",
+        "material": "Debris",
+        "movement": "Slide",
+        "movement_rate": "Very rapid",
+        "activity": "Active",
+        "distribution": "Retrogressive",
+        "history": "2024",
+        "source": "SIH-26 Demo Hardening — field-aligned pilot record"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [91.8945, 25.5260]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 27,
+        "slide_no": "IND/EKH/NH06/2024-25/04",
+        "name": "Shillong Escarpment rock fall 1",
+        "locality": "NH-6 Shillong bypass hill cut (EKH)",
+        "state": "Meghalaya",
+        "district": "East Khasi Hills",
+        "material": "Rock",
+        "movement": "Fall",
+        "movement_rate": "Very rapid",
+        "activity": "Active",
+        "distribution": "Confined",
+        "history": "2024",
+        "source": "SIH-26 Demo Hardening — field-aligned pilot record"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [91.9094, 25.5592]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 28,
+        "slide_no": "IND/KAR/NH29/2024-25/01",
+        "name": "Karbi Anglong slope failure 1",
+        "locality": "NH-29 Karbi Anglong hill section near Baithalangso",
+        "state": "Assam",
+        "district": "Karbi Anglong",
+        "material": "Debris",
+        "movement": "Slide",
+        "movement_rate": "Rapid",
+        "activity": "Active",
+        "distribution": "Retrogressive",
+        "history": "2024",
+        "source": "SIH-26 Demo Hardening — field-aligned pilot record"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [93.3924, 26.0184]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 29,
+        "slide_no": "IND/KAR/NH29/2024-25/02",
+        "name": "Karbi Anglong slope failure 2",
+        "locality": "NH-29 Karbi Anglong hill section (Doboka area)",
+        "state": "Assam",
+        "district": "Karbi Anglong",
+        "material": "Rock",
+        "movement": "Slide",
+        "movement_rate": "Rapid",
+        "activity": "Active",
+        "distribution": "Confined",
+        "history": "2023",
+        "source": "SIH-26 Demo Hardening — field-aligned pilot record"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [93.4100, 25.9980]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 30,
+        "slide_no": "IND/KAR/NH29/2024-25/03",
+        "name": "Karbi Anglong slope failure 3",
+        "locality": "NH-29 Karbi Anglong — Diphu approach",
+        "state": "Assam",
+        "district": "Karbi Anglong",
+        "material": "Debris",
+        "movement": "Slide",
+        "movement_rate": "Rapid",
+        "activity": "Reactivated",
+        "distribution": "Retrogressive",
+        "history": "2024",
+        "source": "SIH-26 Demo Hardening — field-aligned pilot record"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [93.4247, 25.9886]
+      }
     }
   ]
 }

@@ -1,14 +1,7 @@
-"""
-Road Network Graph Service — NetworkX pathfinding on PostGIS Infrastructure.
-
-Builds graph from Infrastructure segments and calculates:
-1. Shortest Path (pure distance/travel time)
-2. Safest Path (risk-penalized edge weights)
-Produces ephemeral RouteCandidate objects (never stored in DB).
-"""
-import heapq
+﻿import heapq
 import logging
 from dataclasses import dataclass, field
+from math import radians, sin, cos, sqrt, atan2
 from typing import List, Dict, Any, Optional, Tuple, Set
 import networkx as nx
 from django.contrib.gis.geos import Point
@@ -17,6 +10,15 @@ from django.contrib.gis.db.models.functions import Distance
 from apps.routes.models import Infrastructure
 
 logger = logging.getLogger(__name__)
+
+
+def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    R = 6371.0
+    dlat = radians(lat2 - lat1)
+    dlon = radians(lon2 - lon1)
+    a = sin(dlat / 2) ** 2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon / 2) ** 2
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    return R * c
 
 
 @dataclass
@@ -110,7 +112,7 @@ class RoadNetworkGraphService:
                 'risk_level': infra.risk_level,
                 'status': infra.status,
                 'oneway': infra.oneway,
-                
+
                 # Metadata & routing fields
                 'id': infra.id,
                 'name': infra.name,
@@ -126,7 +128,7 @@ class RoadNetworkGraphService:
                 graph.add_node(infra.end_node, x=end_coord[1], y=end_coord[0])
 
             graph.add_edge(infra.start_node, infra.end_node, key=infra.id, **edge_data)
-            
+
             if not infra.oneway:
                 rev_coords = list(reversed(coords))
                 rev_edge_data = edge_data.copy()
@@ -136,9 +138,11 @@ class RoadNetworkGraphService:
         return graph
 
     @classmethod
-    def find_nearest_node(cls, lat: float, lng: float) -> Optional[int]:
+    def find_nearest_node(cls, lat: float, lng: float, max_distance_km: Optional[float] = 35.0) -> Optional[int]:
         """
         Find the closest road graph node to the given coordinates.
+        If max_distance_km is provided, validates that the location is within that threshold.
+        Returns None if no road is within max_distance_km.
         """
         point = Point(lng, lat, srid=4326)
         nearest_infra = Infrastructure.objects.annotate(
@@ -155,7 +159,15 @@ class RoadNetworkGraphService:
         dist_to_start = point.distance(start_pt)
         dist_to_end = point.distance(end_pt)
 
-        return nearest_infra.start_node if dist_to_start <= dist_to_end else nearest_infra.end_node
+        chosen_node = nearest_infra.start_node if dist_to_start <= dist_to_end else nearest_infra.end_node
+        chosen_coord = coords[0] if dist_to_start <= dist_to_end else coords[-1]
+
+        if max_distance_km is not None:
+            geo_dist = _haversine_km(lat, lng, chosen_coord[1], chosen_coord[0])
+            if geo_dist > max_distance_km:
+                return None
+
+        return chosen_node
 
     @classmethod
     def _dijkstra_multigraph(
@@ -219,6 +231,106 @@ class RoadNetworkGraphService:
         return dist[target], path
 
     @classmethod
+    def find_k_diverse_paths(
+        cls,
+        graph: nx.MultiDiGraph,
+        source: Any,
+        target: Any,
+        K: int = 3,
+        max_overlap_ratio: float = 0.80,
+        max_stretch: float = 2.5,
+        max_iterations: int = 40,
+        weight: str = 'weight_distance',
+    ) -> List[List[Tuple[Any, Any, Any]]]:
+        """
+        Generate up to K genuinely distinct paths using iterative edge penalization
+        and strict physical road overlap filtering.
+        
+        Ensures candidates differ meaningfully across highway corridors rather than
+        micro-variations (slip roads/flyover ramps).
+        """
+        if source not in graph or target not in graph:
+            return []
+
+        edge_weights = {}
+        for u, v, k, d in graph.edges(keys=True, data=True):
+            edge_weights[(u, v, k)] = d.get(weight, d.get('distance_km', 1.0))
+
+        accepted_paths = []
+        shortest_dist = None
+
+        for _ in range(max_iterations):
+            heap = [(0.0, 0, source)]
+            counter = 0
+            dist = {source: 0.0}
+            parent = {source: None}
+
+            while heap:
+                d, _, u = heapq.heappop(heap)
+                if d > dist[u]:
+                    continue
+                if u == target:
+                    break
+
+                for v in graph[u]:
+                    for key, data in graph[u][v].items():
+                        w = edge_weights.get((u, v, key), data.get(weight, 1.0))
+                        new_d = d + w
+                        if v not in dist or new_d < dist[v]:
+                            dist[v] = new_d
+                            parent[v] = (u, key)
+                            counter += 1
+                            heapq.heappush(heap, (new_d, counter, v))
+
+            if target not in dist:
+                break
+
+            curr = target
+            path = []
+            while parent[curr] is not None:
+                p, k = parent[curr]
+                path.append((p, curr, k))
+                curr = p
+            path.reverse()
+
+            path_distance = sum(graph[u][v][k].get('distance_km', 0.0) for u, v, k in path)
+            if shortest_dist is None:
+                shortest_dist = path_distance
+
+            # Check max stretch
+            if shortest_dist > 0 and path_distance > shortest_dist * max_stretch:
+                for u, v, k in path:
+                    edge_weights[(u, v, k)] = edge_weights[(u, v, k)] * 1.5
+                continue
+
+            # Calculate physical overlap with existing accepted paths
+            path_edges = set(path)
+            is_distinct = True
+
+            for acc in accepted_paths:
+                acc_edges = set(acc)
+                shared_edges = path_edges & acc_edges
+                shared_len = sum(graph[u][v][k].get('distance_km', 0.0) for u, v, k in shared_edges)
+                acc_len = sum(graph[u][v][k].get('distance_km', 0.0) for u, v, k in acc)
+                max_len = max(path_distance, acc_len)
+
+                overlap_ratio = shared_len / max_len if max_len > 0 else 1.0
+                if overlap_ratio > max_overlap_ratio:
+                    is_distinct = False
+                    break
+
+            if is_distinct:
+                accepted_paths.append(path)
+                if len(accepted_paths) >= K:
+                    break
+
+            # Penalize edges in the current path to force explorer into alternate corridors
+            for u, v, k in path:
+                edge_weights[(u, v, k)] = edge_weights[(u, v, k)] * 2.0
+
+        return accepted_paths
+
+    @classmethod
     def find_k_shortest_paths(
         cls,
         graph: nx.MultiDiGraph,
@@ -227,73 +339,7 @@ class RoadNetworkGraphService:
         K: int = 3,
         weight: str = 'weight_distance',
     ) -> List[List[Tuple[Any, Any, Any]]]:
-        """
-        Yen's K-shortest simple paths algorithm adapted for MultiDiGraph.
-        Returns up to K distinct paths, where each path is a list of (u, v, key) tuples.
-        Distinctness is determined by the physical sequence of edge keys (Infrastructure IDs).
-        """
-        cost, first_path = cls._dijkstra_multigraph(graph, source, target, weight=weight)
-        if first_path is None:
-            return []
-
-        A = [first_path]
-        seen_A = {tuple(e[2] for e in first_path)}
-        B = []  # min-heap of (cost, counter, path)
-        seen_B = set()
-        counter = 0
-
-        for k in range(1, K):
-            prev_path = A[k - 1]
-            nodes = [prev_path[0][0]] + [e[1] for e in prev_path]
-
-            for i in range(len(prev_path)):
-                spur_node = nodes[i]
-                root_path = prev_path[:i]
-                root_cost = sum(
-                    graph[e[0]][e[1]][e[2]].get(weight, 1.0) for e in root_path
-                )
-
-                # Edges that share the same root path prefix must be excluded
-                excluded_edges = set()
-                for p in A:
-                    if len(p) > i and p[:i] == root_path:
-                        excluded_edges.add(p[i])
-
-                # Root nodes (except spur_node) must be excluded to prevent loops
-                excluded_nodes = set(nodes[:i])
-
-                spur_cost, spur_path = cls._dijkstra_multigraph(
-                    graph,
-                    spur_node,
-                    target,
-                    weight=weight,
-                    excluded_nodes=excluded_nodes,
-                    excluded_edges=excluded_edges,
-                )
-
-                if spur_path is not None:
-                    total_path = root_path + spur_path
-                    total_cost = root_cost + spur_cost
-                    sig = tuple(e[2] for e in total_path)
-                    if sig not in seen_B and sig not in seen_A:
-                        counter += 1
-                        heapq.heappush(B, (total_cost, counter, total_path))
-                        seen_B.add(sig)
-
-            found_next = False
-            while B:
-                c, _, next_path = heapq.heappop(B)
-                sig = tuple(e[2] for e in next_path)
-                if sig not in seen_A:
-                    A.append(next_path)
-                    seen_A.add(sig)
-                    found_next = True
-                    break
-
-            if not found_next:
-                break
-
-        return A
+        return cls.find_k_diverse_paths(graph, source, target, K=K, weight=weight)
 
     @classmethod
     def _assemble_candidate_from_edges(
@@ -378,8 +424,8 @@ class RoadNetworkGraphService:
         if origin_node not in graph or dest_node not in graph:
             raise ValueError(f"Origin '{origin_node}' or Destination '{dest_node}' not found in road network graph.")
 
-        edge_paths = cls.find_k_shortest_paths(
-            graph, origin_node, dest_node, K=3, weight='weight_distance'
+        edge_paths = cls.find_k_diverse_paths(
+            graph, origin_node, dest_node, K=3, max_overlap_ratio=0.80, max_stretch=2.5, weight='weight_distance'
         )
 
         if not edge_paths:

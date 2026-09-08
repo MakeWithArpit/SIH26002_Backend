@@ -168,16 +168,17 @@ SPECTACULAR_SETTINGS = {
     'SERVE_INCLUDE_SCHEMA': False,
 }
 
-# CORS Configuration
+# CORS Configuration (Development / Demo: allow all origins)
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     origin.strip()
     for origin in os.getenv(
         'CORS_ALLOWED_ORIGINS',
-        'http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:5173'
+        'http://localhost:3000,http://localhost:5173,http://localhost:5174,http://127.0.0.1:3000,http://127.0.0.1:5173,http://127.0.0.1:5174'
     ).split(',')
     if origin.strip()
 ]
-CORS_ALLOW_CREDENTIALS = True
 
 # CSRF Trusted Origins (Required for Cloudflare Tunnel, Ngrok, and Remote Access)
 CSRF_TRUSTED_ORIGINS = [
@@ -210,6 +211,13 @@ WEATHER_PROVIDER = os.getenv('WEATHER_PROVIDER', 'open_meteo')
 OPEN_METEO_BASE_URL = os.getenv('OPEN_METEO_BASE_URL', 'https://api.open-meteo.com/v1/forecast')
 OPEN_METEO_TIMEOUT_SECONDS = float(os.getenv('OPEN_METEO_TIMEOUT_SECONDS', 10.0))
 WEATHER_RECENT_RAINFALL_HOURS = int(os.getenv('WEATHER_RECENT_RAINFALL_HOURS', 24))
+
+# IMD District Warning Configuration
+IMD_DISTRICT_WARNING_URL = os.getenv('IMD_DISTRICT_WARNING_URL', 'https://api.imd.gov.in/api/v1/districtwarning')
+IMD_API_KEY = os.getenv('IMD_API_KEY', '')
+IMD_API_TOKEN = os.getenv('IMD_API_TOKEN', '')
+IMD_CACHE_TTL_SECONDS = int(os.getenv('IMD_CACHE_TTL_SECONDS', 600))
+IMD_TIMEOUT_SECONDS = float(os.getenv('IMD_TIMEOUT_SECONDS', 10.0))
 
 # Celery & Redis Configuration (Optional / Non-blocking)
 CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0')

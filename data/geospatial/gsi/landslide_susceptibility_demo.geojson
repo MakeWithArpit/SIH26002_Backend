@@ -229,6 +229,94 @@
           ]
         ]
       }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "LSM-H-10",
+        "name": "NH-06 Ri-Bhoi Hill Pass (Jorabat-Nongpoh Ghat)",
+        "susceptibility_class": "High",
+        "source": "SIH-26 Demo Hardening — GSI-aligned pilot zone",
+        "geometry_basis": "targeted polygon covering NH-06 ghat segments unique to Guwahati-Shillong C1 (infra 4201-4236); Ri-Bhoi lat 25.740-26.015"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [91.845, 25.740],
+            [91.895, 25.740],
+            [91.895, 26.015],
+            [91.845, 26.015],
+            [91.845, 25.740]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "LSM-H-11",
+        "name": "NH-06 Umsning-Umiam Lake Hazard Sector",
+        "susceptibility_class": "High",
+        "source": "SIH-26 Demo Hardening — GSI-aligned pilot zone",
+        "geometry_basis": "targeted polygon covering NH-06 Umsning-Umiam segments; Ri-Bhoi lat 25.520-25.745"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [91.855, 25.520],
+            [91.915, 25.520],
+            [91.915, 25.745],
+            [91.855, 25.745],
+            [91.855, 25.520]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "LSM-H-12",
+        "name": "Shillong Plateau Eastern Escarpment (East Khasi Hills)",
+        "susceptibility_class": "High",
+        "source": "SIH-26 Demo Hardening — GSI-aligned pilot zone",
+        "geometry_basis": "targeted polygon covering NH-6 segments unique to Shillong-Dimapur C1 (seg 3079 etc.); EKH lat 25.500-25.580"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [91.880, 25.500],
+            [92.060, 25.500],
+            [92.060, 25.580],
+            [91.880, 25.580],
+            [91.880, 25.500]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "LSM-H-14",
+        "name": "Karbi Anglong Hill Range Hazard Sector",
+        "susceptibility_class": "High",
+        "source": "SIH-26 Demo Hardening — GSI-aligned pilot zone",
+        "geometry_basis": "targeted polygon covering NH-29 segments in Karbi Anglong (infra 3012-3035); lat 25.980-26.030, lng 93.370-93.435"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [93.370, 25.980],
+            [93.435, 25.980],
+            [93.435, 26.030],
+            [93.370, 26.030],
+            [93.370, 25.980]
+          ]
+        ]
+      }
     }
   ]
 }
