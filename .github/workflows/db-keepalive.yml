@@ -1,0 +1,40 @@
+name: Supabase DB Keep-Alive Ping
+
+on:
+  schedule:
+    # Har roz subah 5:00 AM IST (UTC 23:30 prev day) ping karega
+    - cron: '30 23 * * *'
+  workflow_dispatch: # Manual trigger bhi allowed hai (testing ke liye)
+
+jobs:
+  ping:
+    name: Ping Supabase to prevent sleep
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Ping Supabase REST API
+        run: |
+          echo "Pinging Supabase at $(date -u) ..."
+
+          HTTP_STATUS=$(curl --silent --output /dev/null --write-out "%{http_code}" \
+            --max-time 15 \
+            --header "apikey: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}" \
+            --header "Authorization: Bearer ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}" \
+            "${{ secrets.SUPABASE_URL }}/rest/v1/")
+
+          echo "HTTP Status: $HTTP_STATUS"
+
+          # 200 (ok) ya 401 (unauthorized but DB is awake) dono success mante hain
+          if [ "$HTTP_STATUS" = "200" ] || [ "$HTTP_STATUS" = "401" ]; then
+            echo "✅ Supabase database is awake and responding (HTTP $HTTP_STATUS)"
+          else
+            echo "❌ Unexpected status: $HTTP_STATUS — database may be unreachable"
+            exit 1
+          fi
+
+      - name: Log ping result
+        if: always()
+        run: |
+          echo "Keep-alive ping completed at $(date -u)"
+          echo "Next scheduled run: tomorrow at 05:00 AM IST"
