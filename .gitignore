@@ -8,6 +8,7 @@ env/
 venv/
 .venv/
 ENV/
+.agents/
 
 # Django & Celery
 *.log
@@ -16,6 +17,7 @@ db.sqlite3
 db.sqlite3-journal
 media/
 staticfiles/
+cache/
 celerybeat-schedule*
 
 # Environment variables

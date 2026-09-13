@@ -12,7 +12,12 @@ __pycache__
 staticfiles/
 media/
 cache/
+celerybeat-schedule*
+projectInformation/
+*.pdf
+README.md
 .DS_Store
 .idea
 .vscode
 .agents
+

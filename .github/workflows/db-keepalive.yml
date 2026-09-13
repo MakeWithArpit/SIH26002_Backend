@@ -2,10 +2,8 @@ name: Supabase DB Keep-Alive Ping
 
 on:
   schedule:
-    # Har roz subah 05:00 AM IST (UTC 23:30) ping karega
     - cron: "30 23 * * *"
-  workflow_dispatch: # GitHub Actions tab se manual run karne ke liye
-
+  workflow_dispatch:
 jobs:
   ping:
     name: Ping Supabase to prevent sleep

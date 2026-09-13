@@ -15,13 +15,7 @@ if [ "$USE_SQLITE" != "True" ] && [ "$USE_SQLITE" != "true" ] && [ "$USE_SQLITE"
 fi
 
 # Apply database migrations if running web service
-if [ "$1" = "python" ] && [ "$2" = "manage.py" ] && [ "$3" = "runserver" ]; then
-    echo "Applying database migrations..."
-    python manage.py migrate --noinput || echo "Migrations skipped or encountered an error"
-    
-    echo "Collecting static files..."
-    python manage.py collectstatic --noinput || echo "Static collection completed"
-elif [ "$1" = "gunicorn" ]; then
+if { [ "$1" = "python" ] && [ "$2" = "manage.py" ] && [ "$3" = "runserver" ]; } || [ "$1" = "gunicorn" ]; then
     echo "Applying database migrations..."
     python manage.py migrate --noinput || echo "Migrations skipped or encountered an error"
     
