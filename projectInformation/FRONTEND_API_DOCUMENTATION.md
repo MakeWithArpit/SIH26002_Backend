@@ -5,7 +5,7 @@
 > **Interactive Swagger UI:** `http://localhost:8000/api/docs/`  
 > **Interactive ReDoc:** `http://localhost:8000/api/redoc/`  
 > **OpenAPI 3.0 Schema:** `http://localhost:8000/api/schema/`  
-> **Content-Type:** `application/json` (unless specified as `multipart/form-data` for file uploads)  
+> **Content-Type:** `application/json` (all endpoints use JSON, including incident report submission)  
 > **Standard Response Format:** All endpoints return a standardized JSON envelope.
 
 ---
@@ -141,22 +141,37 @@ Authorization: Bearer <access_token>
 
 ## 3. Phase 1: Field Intelligence & Incident Photo Reporting
 
-### 3.1 Submit Incident Report (With Photo Upload)
+### 3.1 Submit Incident Report
 * **Method:** `POST`
 * **URL:** `/api/v1/reports/incidents/`
 * **Access:** `field_officer` or `admin`
-* **Content-Type:** `multipart/form-data`
-* **Form Fields:**
+* **Content-Type:** `application/json`
+
+> **Photo Upload Flow:** The mobile app uploads the photo **directly to ImageKit.io** using the ImageKit SDK and receives a CDN URL. Only that URL is sent to this endpoint — the backend never handles the binary file.
+
+* **Request Body:**
 
 | Field Name | Type | Required | Description / Example |
 |---|---|---|---|
-| `photo` | File | **Yes** | Image file (JPEG, PNG). Max 10MB. |
+| `photo_url` | String (URL) | **Yes** | ImageKit CDN URL of the uploaded photo. e.g. `"https://ik.imagekit.io/swg0ntwwa/reports/rockfall.jpg"` |
 | `latitude` | Float | **Yes** | `26.1300` |
 | `longitude` | Float | **Yes** | `91.8200` |
 | `incident_type` | String | **Yes** | `landslide`, `flood`, `road_damage`, `bridge_collapse`, `blockage`, `other` |
 | `severity` | String | **Yes** | `low`, `medium`, `high`, `critical` |
 | `description` | String | No | `"Major rockfall blocking both lanes of NH-06 near Jorabat."` |
 | `client_timestamp` | ISO8601 | No | `"2026-09-07T14:30:00Z"` (Timestamp captured by mobile app offline/online) |
+
+```json
+{
+  "photo_url": "https://ik.imagekit.io/swg0ntwwa/reports/2026/09/07/rockfall_jorabat.jpg",
+  "latitude": 26.1300,
+  "longitude": 91.8200,
+  "description": "Major rockfall blocking both lanes of NH-06 near Jorabat.",
+  "incident_type": "landslide",
+  "severity": "critical",
+  "client_timestamp": "2026-09-07T14:30:00Z"
+}
+```
 
 * **Success Response (`201 Created`):**
 ```json
@@ -165,7 +180,7 @@ Authorization: Bearer <access_token>
   "data": {
     "id": 12,
     "officer_name": "Rahul Sharma",
-    "photo_url": "http://127.0.0.1:8000/media/reports/photos/2026/09/07/rockfall_jorabat.jpg",
+    "photo_url": "https://ik.imagekit.io/swg0ntwwa/reports/2026/09/07/rockfall_jorabat.jpg",
     "latitude": 26.1300,
     "longitude": 91.8200,
     "description": "Major rockfall blocking both lanes of NH-06 near Jorabat.",
@@ -205,7 +220,7 @@ Authorization: Bearer <access_token>
     {
       "id": 12,
       "officer_name": "Rahul Sharma",
-      "photo_url": "http://127.0.0.1:8000/media/reports/photos/2026/09/07/rockfall_jorabat.jpg",
+      "photo_url": "https://ik.imagekit.io/swg0ntwwa/reports/2026/09/07/rockfall_jorabat.jpg",
       "latitude": 26.1300,
       "longitude": 91.8200,
       "description": "Major rockfall blocking both lanes of NH-06 near Jorabat.",

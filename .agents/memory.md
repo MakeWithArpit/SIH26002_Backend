@@ -41,7 +41,7 @@
 | Phase        | Name                                 | Status      | Notes                                                                                                                                                           |
 | ------------ | ------------------------------------ | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Phase 0**  | Backend Foundation                   | COMPLETE    | Django 6.1, DRF, JWT, PostGIS, GeoDjango, 4/4 tests passing                                                                                                     |
-| **Phase 1**  | Field Intelligence & Photo Analysis  | COMPLETE    | IncidentReport (PointField, photo), photo analysis stub, Field Officer scoping, 5/5 tests passing                                                               |
+| **Phase 1**  | Field Intelligence & Photo Analysis  | COMPLETE    | IncidentReport (PointField, photo_url URLField via ImageKit CDN), photo analysis stub, Field Officer scoping, 5/5 tests passing (JSON payloads)                |
 | **Phase 2**  | Road Network Graph & Disruption Risk | COMPLETE    | District & Infrastructure GeoDjango models, Rule-based Risk Engine (AI-01), Pilot corridor seed data, spatial snap integration, 7/7 tests passing               |
 | **Phase 3**  | Risk-Aware Route Optimization        | COMPLETE    | NetworkX graph pathfinding, dynamic risk penalties, ephemeral RouteCandidate, AI-03 ranking & explanation, POST /calculate/, 4/4 tests passing (20/20 total)    |
 | **Phase 4**  | Condition-Aware ETA Estimation       | COMPLETE    | Vehicle (cached telemetry), Trip (AI-02 ETA fields), LocationPing, ETAEstimationService, atomic ping ingestion, 7/7 tests passing (27/27 total)                 |
@@ -69,8 +69,8 @@
 
 ### Phase 1 — Field Intelligence & Photo Analysis
 
-- `apps/reports/` — `IncidentReport` model with GeoDjango `PointField(srid=4326, geography=True)`, photo uploads, AI prediction fields (`ai_issue_type`, `ai_severity`, `ai_confidence`, `analysis_status`), and foreign key `snapped_infrastructure`
-- `apps/reports/services/photo_analysis.py` — Replaceable CV service wrapper (AI-08 stub matching AI/ML team contract)
+- `apps/reports/` — `IncidentReport` model with GeoDjango `PointField(srid=4326, geography=True)`, `photo_url` URLField (ImageKit CDN URL stored; no local media), AI prediction fields (`ai_issue_type`, `ai_severity`, `ai_confidence`, `analysis_status`), and foreign key `snapped_infrastructure`
+- `apps/reports/services/photo_analysis.py` — Replaceable CV service wrapper (AI-08 stub matching AI/ML team contract; Phase 5 will fetch image via `requests.get(report.photo_url)`)
 - `apps/reports/serializers.py` — Write (`IncidentReportCreateSerializer`) & Read (`IncidentReportSerializer`) with lat/lng conversion
 - `apps/reports/views.py` — `IncidentReportViewSet` with `IsFieldOfficer` permissions, immutable reports, and officer vs admin query scoping
 - `apps/reports/urls.py` — `/api/v1/reports/incidents/`
@@ -152,6 +152,7 @@
 - Docker Compose Environment — Multi-container (`web`, `celery_worker`, `celery_beat`, `redis`) with shared image build
 - Cloud Supabase PostgreSQL + PostGIS via IPv4 Connection Pooler (`aws-0-ap-southeast-2.pooler.supabase.com:5432`)
 - No WebSockets, No MQTT, No S3, No GraphQL, No Kubernetes
+- **ImageKit.io CDN for Photo Storage** — Mobile app uploads photos directly to ImageKit SDK, receives CDN URL, sends URL to backend. Backend stores only `photo_url` (URLField). No local `media/` volume. Phase 5 CV model fetches image via `requests.get(report.photo_url)` (CDN is public, no auth needed for GET).
 - REST polling (10-15s) for vehicle location tracking using cached fields on `Vehicle`
 - Last-Write-Wins (LWW) for offline sync conflict resolution
 - **Ponytail Plugin Always Active:** Every implementation strictly adheres to `rules.md` and chooses the simplest, shortest, most minimal working solution (YAGNI).
@@ -184,3 +185,4 @@
 | 2026-09-05 | Phase 4 (Vehicles & ETA Engine)    | 7         | 7 passed  | Telemetry ingestion, atomic cache, trip lifecycle, condition-aware ETA    |
 | 2026-09-05 | Phase 5 (E2E Intelligence Pipeline)| 7 (18 in routes) | 18 passed | End-to-end simulation, spatial snap, risk spike, reranking, demo API      |
 | 2026-09-05 | Full Suite (Phases 0–5)            | 34        | 34 passed | 100% pass across accounts, reports, routes, and vehicles                  |
+| 2026-09-13 | Phase 1 (Reports — ImageKit migration) | 5     | 5 passed  | `photo` ImageField → `photo_url` URLField; multipart → JSON; migration 0003 applied cleanly |

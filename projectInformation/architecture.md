@@ -62,8 +62,10 @@ choices rather than introducing unnecessary infrastructure.
 
  External systems:
    Mobile App ──REST──> Django API
+   Mobile App ──SDK──> ImageKit.io CDN (photo upload; backend stores URL only)
    Weather API ──Celery──> Django
    AI/ML package <──service calls──> Django
+   photo_analysis.py (Phase 5) ──HTTP GET──> ImageKit CDN URL
 ```
 
 ### 2.2 Architectural style
@@ -91,7 +93,7 @@ Do **not** introduce:
 -   Separate AI service
 -   MQTT
 -   Dedicated GPS hardware
--   S3/object storage for the MVP
+-   S3/object storage (replaced by ImageKit.io CDN — mobile uploads direct, backend stores URL)
 -   Complex event buses
 -   GraphQL
 
@@ -135,7 +137,11 @@ These are unnecessary for the stated MVP scope.
   Weather                             Public weather API behind a
                                       service/adapter
 
-  Media                               Local Django media storage for MVP
+  Media                               ImageKit.io CDN — mobile app uploads
+                                      photos directly via ImageKit SDK;
+                                      backend stores only the CDN URL
+                                      (`photo_url` URLField). No local
+                                      media/ volume required.
 
   i18n                                Django translation framework
 
