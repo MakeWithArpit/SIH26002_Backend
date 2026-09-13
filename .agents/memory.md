@@ -1,7 +1,7 @@
 # SIH26002 Backend — Living Memory
 
 > **Auto-maintained by the assistant.** Updated on every major milestone.
-> Last updated: 2026-09-05
+> Last updated: 2026-09-13
 
 ---
 
@@ -16,20 +16,23 @@
 
 ---
 
-## 2. Technical Environment (Local Dev)
+## 2. Technical Environment (Local & Docker)
 
-| Item                  | Value                                                                                     |
-| --------------------- | ----------------------------------------------------------------------------------------- |
-| **OS**                | Windows 11                                                                                |
-| **Python**            | 3.14 (via `.venv`)                                                                        |
-| **Django**            | 5.1                                                                                       |
-| **Database**          | PostgreSQL 18 (`localhost:5432`, db=`sih26002_db`, user=`postgres`)                       |
-| **PostGIS**           | 3.6.2 enabled on `sih26002_db`                                                            |
-| **GDAL**              | `libgdal-35.dll` from `C:\Program Files\PostgreSQL\18\bin` (auto-discovered in `base.py`) |
-| **GeoDjango Backend** | `django.contrib.gis.db.backends.postgis`                                                  |
-| **Settings Module**   | `DJANGO_SETTINGS_MODULE=config.settings.development`                                      |
-| **DB Engine in .env** | `DB_ENGINE=django.contrib.gis.db.backends.postgis`                                        |
-| **USE_SQLITE**        | `False`                                                                                   |
+| Item                  | Value                                                                                                     |
+| --------------------- | --------------------------------------------------------------------------------------------------------- |
+| **OS / Runtime**      | Docker Container (`python:3.12-slim-bookworm`) on Windows 11 / WSL2                                       |
+| **Python**            | 3.12 (in Docker)                                                                                          |
+| **Django**            | 6.1                                                                                                       |
+| **Containerization**  | Docker + Docker Compose (`web`, `redis`, `celery_worker`, `celery_beat`)                                  |
+| **Shared Image**      | `sih26002_app:latest` (built once in `web`, reused across Celery worker & beat for 3x faster builds)       |
+| **Database**          | Cloud Supabase PostgreSQL + PostGIS (`aws-0-ap-southeast-2.pooler.supabase.com:5432`)                     |
+| **Database Pooler**   | Supabase Connection Pooler (IPv4 session mode on port 5432, user: `postgres.jjubqbdntgpuvsnipmcc`)         |
+| **Database Fallback** | Local SQLite (`USE_SQLITE=True`) or local PostgreSQL 18                                                   |
+| **PostGIS**           | PostGIS extension enabled on Supabase `postgres` DB                                                       |
+| **GeoDjango Backend** | `django.contrib.gis.db.backends.postgis`                                                                  |
+| **Task Queue & Cache**| Redis 7 (`redis:6379/0`), Celery 5.6+ worker & persistent scheduler beat (`celery-beat`)                  |
+| **Settings Module**   | `DJANGO_SETTINGS_MODULE=config.settings.development`                                                      |
+| **API Documentation** | OpenAPI 3.0 / Swagger UI at `/api/docs/`, Redoc at `/api/redoc/` (`drf-spectacular`)                      |
 
 ---
 
@@ -37,19 +40,19 @@
 
 | Phase        | Name                                 | Status      | Notes                                                                                                                                                           |
 | ------------ | ------------------------------------ | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Phase 0**  | Backend Foundation                   | COMPLETE    | Django 5.1, DRF, JWT, PostGIS, GeoDjango, 4/4 tests passing                                                                                                     |
+| **Phase 0**  | Backend Foundation                   | COMPLETE    | Django 6.1, DRF, JWT, PostGIS, GeoDjango, 4/4 tests passing                                                                                                     |
 | **Phase 1**  | Field Intelligence & Photo Analysis  | COMPLETE    | IncidentReport (PointField, photo), photo analysis stub, Field Officer scoping, 5/5 tests passing                                                               |
 | **Phase 2**  | Road Network Graph & Disruption Risk | COMPLETE    | District & Infrastructure GeoDjango models, Rule-based Risk Engine (AI-01), Pilot corridor seed data, spatial snap integration, 7/7 tests passing               |
 | **Phase 3**  | Risk-Aware Route Optimization        | COMPLETE    | NetworkX graph pathfinding, dynamic risk penalties, ephemeral RouteCandidate, AI-03 ranking & explanation, POST /calculate/, 4/4 tests passing (20/20 total)    |
 | **Phase 4**  | Condition-Aware ETA Estimation       | COMPLETE    | Vehicle (cached telemetry), Trip (AI-02 ETA fields), LocationPing, ETAEstimationService, atomic ping ingestion, 7/7 tests passing (27/27 total)                 |
 | **Phase 5**  | End-to-End Intelligence Pipeline     | COMPLETE    | Management command `demo_pipeline`, `POST /api/v1/routes/simulate-pipeline/` API, 7/7 tests passing (34/34 total backend tests passing)                          |
-| **Phase 6**  | Weather Intelligence                 | NOT STARTED | P1                                                                                                                                                              |
-| **Phase 7**  | Vehicle Tracking                     | NOT STARTED | P1                                                                                                                                                              |
-| **Phase 8**  | Alerts & Automated Intelligence      | NOT STARTED | P1                                                                                                                                                              |
+| **Phase 6**  | Weather Intelligence                 | COMPLETE    | Open-Meteo & IMD providers, WeatherSnapshot, sync_weather_task Celery periodic task, landslide & weather spatial enrichment                                      |
+| **Phase 7**  | Vehicle Tracking                     | IN PROGRESS | Vehicle telemetry ingestion and O(1) polling endpoints live; trip lifecycle underway                                                                           |
+| **Phase 8**  | Alerts & Automated Intelligence      | IN PROGRESS | AlertsView (`/api/v1/alerts/`) implemented; dynamic alert generation underway                                                                                   |
 | **Phase 9**  | Offline Sync                         | NOT STARTED | P1/P2                                                                                                                                                           |
 | **Phase 10** | Accessibility Intelligence           | NOT STARTED | P2                                                                                                                                                              |
 | **Phase 11** | Dashboard APIs                       | NOT STARTED | P2                                                                                                                                                              |
-| **Phase 12** | Production Hardening                 | NOT STARTED | P2                                                                                                                                                              |
+| **Phase 12** | Production Hardening & Docker        | COMPLETE    | Dockerfile (Python 3.12 + GDAL), Docker Compose (`web`, `celery_worker`, `celery_beat`, `redis`), Supabase cloud PostgreSQL/PostGIS integration via Pooler      |
 
 ---
 
@@ -121,6 +124,22 @@
 - `apps/routes/views.py` & `urls.py` — `POST /api/v1/routes/simulate-pipeline/` endpoint orchestrating the full pipeline simulation in a single API call for hackathon judges and frontends.
 - `apps/routes/test_pipeline.py` — 7 comprehensive integration tests covering individual pipeline stages, spatial snap, risk surges, route reranking, ETA estimations, and API endpoints.
 
+### Phase 6 — Weather Intelligence & Landslide Enrichment
+- `apps/routes/services/weather/` — Weather provider abstraction (Open-Meteo live API + mock/IMD fallback)
+- `apps/routes/services/spatial_enrichment.py` — Spatial enrichment for weather snapshots and landslide susceptibility across the corridor
+- `apps/routes/tasks.py` — Celery task `sync_weather_task` scheduled via Celery Beat for continuous background ingestion
+- Dynamic rainfall integration updating `recent_rainfall_mm` and active weather warnings
+
+### Phase 12 — Production Hardening, Docker & Cloud Database
+- Multi-container architecture via `docker-compose.yml`:
+  - `sih26002_web`: Django WSGI dev/production server (port 8000)
+  - `sih26002_redis`: Redis 7 Alpine cache and Celery message broker
+  - `sih26002_celery_worker`: Celery worker executing background tasks
+  - `sih26002_celery_beat`: Celery beat periodic scheduler
+- Optimized build pipeline: shared image `sih26002_app:latest` built once and reused across worker & beat
+- Cloud Database: Supabase PostgreSQL with PostGIS extension connected via IPv4 Connection Pooler (Session mode, port 5432)
+- Automated startup lifecycle: `entrypoint.sh` handles database readiness check, auto-migrations, and static collection
+
 ---
 
 ## 5. Key Architectural Decisions (Locked)
@@ -130,6 +149,8 @@
 - `RoadSegment` / `Infrastructure` as Central Entity — Field reports spatially snap to nearest segment (PostGIS ST_DWithin); risk score lives on the segment
 - `RouteCandidate` is ephemeral — never stored as DB model, always computed response
 - Pilot Corridor — MVP covers bounded NER corridor (e.g., Guwahati-Shillong / NH-06)
+- Docker Compose Environment — Multi-container (`web`, `celery_worker`, `celery_beat`, `redis`) with shared image build
+- Cloud Supabase PostgreSQL + PostGIS via IPv4 Connection Pooler (`aws-0-ap-southeast-2.pooler.supabase.com:5432`)
 - No WebSockets, No MQTT, No S3, No GraphQL, No Kubernetes
 - REST polling (10-15s) for vehicle location tracking using cached fields on `Vehicle`
 - Last-Write-Wins (LWW) for offline sync conflict resolution
@@ -139,17 +160,16 @@
 
 ## 6. Currently Working On
 
-> Phase 5 verified and COMPLETE (34/34 total backend tests passing).
-> Next up: Phase 6 — Weather Intelligence & Automated Ingestion (Open-Meteo API integration, background refresh, weather hazard multipliers).
+> Phase 6 (Weather) and Phase 12 (Containerization & Supabase) COMPLETE.
+> Next up: Phase 7 (Vehicle Tracking & Trip Lifecycle Polish) & Phase 8 (Alerts Engine).
 
 ---
 
-## 7. Immediate Next Steps (Phase 6 Checklist)
+## 7. Immediate Next Steps
 
-- [ ] Weather ingestion service fetching temperature, precipitation, and warnings for corridor districts
-- [ ] Automated risk engine hooks to update `recent_rainfall_mm` and `weather_warning`
-- [ ] Background management command for periodic weather refresh
-- [ ] Unit & integration tests for weather ingestion and risk impact
+- [ ] Vehicle tracking live trip simulation and telemetry replay
+- [ ] Push/pull alert generation triggered by elevated infrastructure risks
+- [ ] Offline sync endpoints (Phase 9) with LWW resolution
 
 ---
 

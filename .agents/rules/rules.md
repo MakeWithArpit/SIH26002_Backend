@@ -23,15 +23,17 @@ Only install dependencies from this whitelist. Adding unapproved libraries requi
 
 | Layer | Approved Library | Purpose |
 |---|---|---|
-| **Web Framework** | `django` (>= 5.0) | Core web framework |
+| **Web Framework** | `django` (>= 5.0, 6.x) | Core web framework |
 | **REST API** | `djangorestframework` | Serializers, API views, viewsets |
 | **Authentication** | `djangorestframework-simplejwt` | JWT access/refresh tokens |
 | **CORS** | `django-cors-headers` | Cross-origin requests for web/mobile |
-| **Database & GIS** | `psycopg2-binary` or `psycopg[binary]`, `GeoDjango` | PostgreSQL + PostGIS integration |
+| **Database & GIS** | `psycopg2-binary`, `dj-database-url`, `GeoDjango` | PostgreSQL + PostGIS integration |
+| **Cloud & Storage** | `supabase` | Supabase platform SDK & services |
+| **WSGI Server** | `gunicorn` | Production WSGI application server |
 | **Task Queue & Cache** | `celery`, `redis`, `django-celery-beat` | Asynchronous jobs and periodic tasks |
 | **In-Process AI/ML** | `scikit-learn`, `numpy`, `pandas`, `joblib` | Risk, ETA, route-ranking models |
 | **Image / Media** | `Pillow` | Photo upload validation & processing |
-| **Routing & Network** | `osmnx`, `networkx`, `requests` (for OSRM) | Road network graph extraction & pathfinding |
+| **Routing & Network** | `osmnx`, `networkx`, `shapely`, `requests` | Road network graph extraction & pathfinding |
 | **API Docs** | `drf-spectacular` | OpenAPI 3.0 / Swagger generation |
 | **Testing & Quality** | `pytest`, `pytest-django`, `ruff`, `black` | Unit/API tests, formatting, linting |
 
@@ -39,10 +41,15 @@ Only install dependencies from this whitelist. Adding unapproved libraries requi
 
 - **No WebSockets / Django Channels:** Use REST polling (10–15 second interval) for location tracking.
 - **No Separate AI Microservices:** AI runs **in-process** via Python packages.
-- **No Kubernetes / Swarm:** Run locally or via basic Docker Compose.
+- **No Kubernetes / Swarm:** Run locally or via multi-container Docker Compose (`web`, `celery_worker`, `celery_beat`, `redis`).
 - **No MQTT / IoT Protocols:** Location pings come directly from the mobile app via REST.
-- **No S3 / Cloud Storage:** Local media storage (`MEDIA_ROOT`) is mandatory for the hackathon MVP.
+- **No S3 / Cloud Blob Storage:** Local media storage (`MEDIA_ROOT`) is mandatory for the hackathon MVP.
 - **No GraphQL:** Stick strictly to standard REST endpoints (`/api/v1/`).
+
+### 🐳 Containerization & Database Network Standards
+- **Docker Compose Standard:** Always use the shared image pattern (`image: sih26002_app:latest`) across `web`, `celery_worker`, and `celery_beat` to prevent redundant layer exports.
+- **Supabase Pooler Requirement:** Supabase direct host (`db.<ref>.supabase.co`) is IPv6-only. When running inside Docker or IPv4 environments, always connect via the **Supabase Connection Pooler** (`aws-0-<region>.pooler.supabase.com`) on port `5432` (Session mode) with username `postgres.<project-ref>`.
+- **Local Fallback:** Maintain `USE_SQLITE=True` in `.env` as a zero-dependency local development fallback.
 
 ---
 

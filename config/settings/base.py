@@ -101,16 +101,47 @@ if USE_SQLITE:
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
+elif os.getenv('DATABASE_URL'):
+    try:
+        import dj_database_url
+        DATABASES = {
+            'default': dj_database_url.config(
+                default=os.getenv('DATABASE_URL'),
+                engine=os.getenv('DB_ENGINE', 'django.contrib.gis.db.backends.postgis'),
+                conn_max_age=600,
+                ssl_require=os.getenv('DB_SSL_REQUIRE', 'True').lower() in ('true', '1', 't'),
+            )
+        }
+    except ImportError:
+        from urllib.parse import urlparse
+        db_url = urlparse(os.getenv('DATABASE_URL'))
+        DATABASES = {
+            'default': {
+                'ENGINE': os.getenv('DB_ENGINE', 'django.contrib.gis.db.backends.postgis'),
+                'NAME': db_url.path[1:] if db_url.path else 'postgres',
+                'USER': db_url.username or 'postgres',
+                'PASSWORD': db_url.password or '',
+                'HOST': db_url.hostname or 'localhost',
+                'PORT': str(db_url.port or 5432),
+                'OPTIONS': {'sslmode': os.getenv('DB_SSLMODE', 'require')},
+            }
+        }
 else:
     db_engine = os.getenv('DB_ENGINE', 'django.contrib.gis.db.backends.postgis')
+    db_options = {}
+    sslmode = os.getenv('DB_SSLMODE')
+    if sslmode:
+        db_options['sslmode'] = sslmode
+
     DATABASES = {
         'default': {
             'ENGINE': db_engine,
-            'NAME': os.getenv('DB_NAME', 'sih26002_db'),
+            'NAME': os.getenv('DB_NAME', 'postgres'),
             'USER': os.getenv('DB_USER', 'postgres'),
             'PASSWORD': os.getenv('DB_PASSWORD', 'postgres'),
             'HOST': os.getenv('DB_HOST', 'localhost'),
             'PORT': os.getenv('DB_PORT', '5432'),
+            'OPTIONS': db_options,
         }
     }
 
@@ -242,5 +273,11 @@ RISK_THRESHOLD_MEDIUM_MAX = float(os.getenv('RISK_THRESHOLD_MEDIUM_MAX', 69.0))
 # Route Optimization Engine Configuration (apps.intelligence)
 OPTIMIZATION_DISTANCE_WEIGHT = float(os.getenv('OPTIMIZATION_DISTANCE_WEIGHT', 0.60))
 OPTIMIZATION_RISK_WEIGHT = float(os.getenv('OPTIMIZATION_RISK_WEIGHT', 0.40))
+
+# Supabase Integration Configuration
+SUPABASE_URL = os.getenv('SUPABASE_URL', '')
+SUPABASE_PUBLISHABLE_KEY = os.getenv('SUPABASE_PUBLISHABLE_KEY', '')
+SUPABASE_SECRET_KEY = os.getenv('SUPABASE_SECRET_KEY', '')
+SUPABASE_JWKS_URL = os.getenv('SUPABASE_JWKS_URL', '')
 
 
