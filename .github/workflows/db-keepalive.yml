@@ -2,9 +2,9 @@ name: Supabase DB Keep-Alive Ping
 
 on:
   schedule:
-    # Har roz subah 5:00 AM IST (UTC 23:30 prev day) ping karega
-    - cron: '30 23 * * *'
-  workflow_dispatch: # Manual trigger bhi allowed hai (testing ke liye)
+    # Har roz subah 05:00 AM IST (UTC 23:30) ping karega
+    - cron: "30 23 * * *"
+  workflow_dispatch: # GitHub Actions tab se manual run karne ke liye
 
 jobs:
   ping:
@@ -13,28 +13,51 @@ jobs:
     timeout-minutes: 5
 
     steps:
-      - name: Ping Supabase REST API
+      - name: Ping Supabase Endpoints (Zero secrets required)
+        env:
+          PROJECT_REF: "jjubqbdntgpuvsnipmcc"
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
-          echo "Pinging Supabase at $(date -u) ..."
+          echo "============================================="
+          echo "Starting Supabase Keep-Alive Ping at $(date -u)"
+          echo "Project Ref: $PROJECT_REF"
+          echo "============================================="
 
-          HTTP_STATUS=$(curl --silent --output /dev/null --write-out "%{http_code}" \
-            --max-time 15 \
-            --header "apikey: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}" \
-            --header "Authorization: Bearer ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}" \
-            "${{ secrets.SUPABASE_URL }}/rest/v1/")
+          BASE_URL="https://${PROJECT_REF}.supabase.co"
 
-          echo "HTTP Status: $HTTP_STATUS"
+          # 1. Ping Storage Status (Public endpoint, returns 200 OK without any key)
+          echo -n "1. Pinging Storage Status ($BASE_URL/storage/v1/status) ... "
+          STORAGE_STATUS=$(curl --silent --output /dev/null --write-out "%{http_code}" --max-time 15 "$BASE_URL/storage/v1/status")
+          echo "HTTP $STORAGE_STATUS"
 
-          # 200 (ok) ya 401 (unauthorized but DB is awake) dono success mante hain
-          if [ "$HTTP_STATUS" = "200" ] || [ "$HTTP_STATUS" = "401" ]; then
-            echo "✅ Supabase database is awake and responding (HTTP $HTTP_STATUS)"
+          # 2. Ping Auth / Gateway endpoint
+          echo -n "2. Pinging Auth Health ($BASE_URL/auth/v1/health) ... "
+          AUTH_STATUS=$(curl --silent --output /dev/null --write-out "%{http_code}" --max-time 15 "$BASE_URL/auth/v1/health")
+          echo "HTTP $AUTH_STATUS"
+
+          # 3. Optional PostgREST ping if secret is configured
+          if [ -n "$SUPABASE_ANON_KEY" ]; then
+            echo -n "3. Pinging PostgREST with Anon Key ($BASE_URL/rest/v1/) ... "
+            REST_STATUS=$(curl --silent --output /dev/null --write-out "%{http_code}" --max-time 15 \
+              -H "apikey: $SUPABASE_ANON_KEY" \
+              -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+              "$BASE_URL/rest/v1/")
+            echo "HTTP $REST_STATUS"
           else
-            echo "❌ Unexpected status: $HTTP_STATUS — database may be unreachable"
+            echo "3. (Optional) SUPABASE_ANON_KEY not set in GitHub Secrets — skipping authenticated REST ping."
+          fi
+
+          echo "============================================="
+          # Check success (Storage status 200 means Supabase project gateway is active)
+          if [ "$STORAGE_STATUS" = "200" ]; then
+            echo "SUCCESS: Supabase project is active and responding (HTTP 200)!"
+          else
+            echo "ERROR: Storage returned unexpected HTTP $STORAGE_STATUS"
             exit 1
           fi
 
-      - name: Log ping result
+      - name: Log Summary
         if: always()
         run: |
-          echo "Keep-alive ping completed at $(date -u)"
-          echo "Next scheduled run: tomorrow at 05:00 AM IST"
+          echo "Keep-alive workflow finished at $(date -u)"
+          echo "Schedule: Daily at 05:00 AM IST (23:30 UTC)"
