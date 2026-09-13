@@ -9,6 +9,8 @@ class IncidentReportCreateSerializer(serializers.ModelSerializer):
     Write serializer for submitting a new incident report.
     Accepts latitude/longitude as separate fields and constructs
     a GeoDjango Point internally.
+    The photo must be pre-uploaded to ImageKit.io by the client;
+    only the resulting CDN URL is sent to this endpoint.
     """
     latitude = serializers.FloatField(write_only=True, min_value=-90, max_value=90)
     longitude = serializers.FloatField(write_only=True, min_value=-180, max_value=180)
@@ -16,7 +18,7 @@ class IncidentReportCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = IncidentReport
         fields = [
-            'photo',
+            'photo_url',
             'latitude',
             'longitude',
             'description',
@@ -54,7 +56,7 @@ class IncidentReportSerializer(serializers.ModelSerializer):
             'id',
             'officer',
             'officer_username',
-            'photo',
+            'photo_url',
             'latitude',
             'longitude',
             'description',

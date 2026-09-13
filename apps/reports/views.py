@@ -1,5 +1,5 @@
 from rest_framework import viewsets, status
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import JSONParser
 
 from apps.accounts.permissions import IsFieldOfficer, IsAdminRole
 from apps.common.responses import standard_response
@@ -17,7 +17,7 @@ class IncidentReportViewSet(viewsets.ModelViewSet):
     - No update/delete — reports are immutable once submitted.
     """
     permission_classes = [IsFieldOfficer]
-    parser_classes = [MultiPartParser, FormParser]
+    parser_classes = [JSONParser]
     http_method_names = ['get', 'post', 'head', 'options']
 
     def get_serializer_class(self):

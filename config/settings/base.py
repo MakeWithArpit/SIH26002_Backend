@@ -274,10 +274,18 @@ RISK_THRESHOLD_MEDIUM_MAX = float(os.getenv('RISK_THRESHOLD_MEDIUM_MAX', 69.0))
 OPTIMIZATION_DISTANCE_WEIGHT = float(os.getenv('OPTIMIZATION_DISTANCE_WEIGHT', 0.60))
 OPTIMIZATION_RISK_WEIGHT = float(os.getenv('OPTIMIZATION_RISK_WEIGHT', 0.40))
 
+
 # Supabase Integration Configuration
 SUPABASE_URL = os.getenv('SUPABASE_URL', '')
 SUPABASE_PUBLISHABLE_KEY = os.getenv('SUPABASE_PUBLISHABLE_KEY', '')
 SUPABASE_SECRET_KEY = os.getenv('SUPABASE_SECRET_KEY', '')
 SUPABASE_JWKS_URL = os.getenv('SUPABASE_JWKS_URL', '')
 
-
+# ImageKit.io CDN Configuration
+# Photos are uploaded by the mobile client directly to ImageKit;
+# the backend stores and serves only the resulting CDN URL.
+# Private key is intentionally excluded from source — set in .env only.
+IMAGEKIT_PUBLIC_KEY = os.getenv('IMAGEKIT_PUBLIC_KEY', '')
+IMAGEKIT_PRIVATE_KEY = os.getenv('IMAGEKIT_PRIVATE_KEY', '')
+IMAGEKIT_URL_ENDPOINT = os.getenv('IMAGEKIT_URL_ENDPOINT', '')
+IMAGEKIT_ID = os.getenv('IMAGEKIT_ID', '')

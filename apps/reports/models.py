@@ -33,8 +33,9 @@ class IncidentReport(models.Model):
     A geo-tagged field incident report submitted by a Field Officer.
 
     Flow:
-      Field Officer -> photo + GPS + description
-        -> PhotoAnalysisService (CV stub, Phase 5 real model)
+      Field Officer -> uploads photo to ImageKit.io CDN -> gets URL
+        -> sends photo_url + GPS + description to backend
+        -> PhotoAnalysisService (CV stub; Phase 5 real model ingests photo_url)
         -> SpatialSnapService (Phase 2 stub, snaps to nearest RoadSegment)
         -> IncidentReport persisted with AI result + snapped segment
     """
@@ -46,8 +47,11 @@ class IncidentReport(models.Model):
         related_name='incident_reports',
     )
 
-    # Evidence
-    photo = models.ImageField(upload_to='reports/photos/%Y/%m/%d/')
+    # Evidence — stored on ImageKit.io CDN, backend holds only the URL
+    photo_url = models.URLField(
+        max_length=500,
+        help_text='ImageKit.io CDN URL of the uploaded photo.',
+    )
 
     # Geospatial location (WGS84)
     location = models.PointField(srid=4326, geography=True)

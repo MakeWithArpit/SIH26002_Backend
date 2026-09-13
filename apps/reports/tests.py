@@ -1,8 +1,6 @@
 import io
-from PIL import Image
 from django.test import TestCase
 from django.contrib.auth.models import User
-from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 from rest_framework.test import APIClient
 from rest_framework import status
@@ -10,14 +8,8 @@ from rest_framework import status
 from apps.accounts.models import Role
 from apps.reports.models import IncidentReport, IncidentType, SeverityLevel, AnalysisStatus
 
-
-def get_test_image():
-    """Generate a tiny valid in-memory JPEG for upload testing."""
-    file_obj = io.BytesIO()
-    image = Image.new('RGB', (10, 10), color='red')
-    image.save(file_obj, format='JPEG')
-    file_obj.seek(0)
-    return SimpleUploadedFile('test_photo.jpg', file_obj.read(), content_type='image/jpeg')
+# Canonical ImageKit.io CDN URL used as the test photo fixture.
+TEST_PHOTO_URL = 'https://ik.imagekit.io/swg0ntwwa/test/test_photo.jpg'
 
 
 class IncidentReportAPITests(TestCase):
@@ -48,7 +40,7 @@ class IncidentReportAPITests(TestCase):
         self.client.force_authenticate(user=self.officer1)
 
         payload = {
-            'photo': get_test_image(),
+            'photo_url': TEST_PHOTO_URL,
             'latitude': 26.1445,
             'longitude': 91.7362,
             'description': 'Severe flooding near bridge approach road.',
@@ -57,7 +49,7 @@ class IncidentReportAPITests(TestCase):
             'client_timestamp': timezone.now().isoformat(),
         }
 
-        response = self.client.post('/api/v1/reports/incidents/', payload, format='multipart')
+        response = self.client.post('/api/v1/reports/incidents/', payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
         res_data = response.json()
@@ -70,6 +62,7 @@ class IncidentReportAPITests(TestCase):
         self.assertAlmostEqual(data['latitude'], 26.1445, places=4)
         self.assertAlmostEqual(data['longitude'], 91.7362, places=4)
         self.assertEqual(data['officer_username'], 'officer1')
+        self.assertEqual(data['photo_url'], TEST_PHOTO_URL)
 
         # Verify AI photo analysis stub executed and persisted
         self.assertEqual(data['analysis_status'], AnalysisStatus.COMPLETED)
@@ -82,11 +75,12 @@ class IncidentReportAPITests(TestCase):
         self.assertEqual(report.officer, self.officer1)
         self.assertAlmostEqual(report.location.y, 26.1445, places=4)
         self.assertAlmostEqual(report.location.x, 91.7362, places=4)
+        self.assertEqual(report.photo_url, TEST_PHOTO_URL)
 
     def test_normal_user_cannot_submit_report(self):
         self.client.force_authenticate(user=self.normal_user)
         payload = {
-            'photo': get_test_image(),
+            'photo_url': TEST_PHOTO_URL,
             'latitude': 26.1445,
             'longitude': 91.7362,
             'description': 'Normal user trying to submit.',
@@ -94,7 +88,7 @@ class IncidentReportAPITests(TestCase):
             'severity': SeverityLevel.LOW,
             'client_timestamp': timezone.now().isoformat(),
         }
-        response = self.client.post('/api/v1/reports/incidents/', payload, format='multipart')
+        response = self.client.post('/api/v1/reports/incidents/', payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_unauthenticated_request_rejected(self):
@@ -105,7 +99,7 @@ class IncidentReportAPITests(TestCase):
         # Officer 1 submits report
         self.client.force_authenticate(user=self.officer1)
         payload1 = {
-            'photo': get_test_image(),
+            'photo_url': TEST_PHOTO_URL,
             'latitude': 26.1445,
             'longitude': 91.7362,
             'description': 'Report by officer 1',
@@ -113,13 +107,13 @@ class IncidentReportAPITests(TestCase):
             'severity': SeverityLevel.HIGH,
             'client_timestamp': timezone.now().isoformat(),
         }
-        res1 = self.client.post('/api/v1/reports/incidents/', payload1, format='multipart')
+        res1 = self.client.post('/api/v1/reports/incidents/', payload1, format='json')
         self.assertEqual(res1.status_code, status.HTTP_201_CREATED)
 
         # Officer 2 submits report
         self.client.force_authenticate(user=self.officer2)
         payload2 = {
-            'photo': get_test_image(),
+            'photo_url': TEST_PHOTO_URL,
             'latitude': 25.5788,
             'longitude': 91.8933,
             'description': 'Report by officer 2',
@@ -127,7 +121,7 @@ class IncidentReportAPITests(TestCase):
             'severity': SeverityLevel.MEDIUM,
             'client_timestamp': timezone.now().isoformat(),
         }
-        res2 = self.client.post('/api/v1/reports/incidents/', payload2, format='multipart')
+        res2 = self.client.post('/api/v1/reports/incidents/', payload2, format='json')
         self.assertEqual(res2.status_code, status.HTTP_201_CREATED)
 
         # Officer 1 lists reports -> should see only 1
@@ -143,19 +137,19 @@ class IncidentReportAPITests(TestCase):
         self.assertEqual(admin_list.status_code, status.HTTP_200_OK)
         self.assertEqual(len(admin_list.json()['data']), 2)
 
-    def test_validation_missing_photo_returns_standard_error(self):
+    def test_validation_missing_photo_url_returns_standard_error(self):
         self.client.force_authenticate(user=self.officer1)
         payload = {
             'latitude': 26.1445,
             'longitude': 91.7362,
-            'description': 'Missing photo report',
+            'description': 'Missing photo_url report',
             'incident_type': IncidentType.OBSTRUCTION,
             'severity': SeverityLevel.LOW,
             'client_timestamp': timezone.now().isoformat(),
         }
-        response = self.client.post('/api/v1/reports/incidents/', payload, format='multipart')
+        response = self.client.post('/api/v1/reports/incidents/', payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         data = response.json()
         self.assertFalse(data['success'])
         self.assertEqual(data['error']['code'], 'INVALID_REQUEST')
-        self.assertIn('photo', data['error']['details'])
+        self.assertIn('photo_url', data['error']['details'])
