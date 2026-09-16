@@ -31,11 +31,12 @@ COPY requirements.txt /app/
 RUN pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Copy entrypoint script and application code
-COPY entrypoint.sh /app/entrypoint.sh
-RUN sed -i 's/\r$//' /app/entrypoint.sh && chmod +x /app/entrypoint.sh
-
+# Copy entire application code
 COPY . /app/
+
+# Ensure entrypoint script has Unix LF line endings and executable permissions
+# (Must be done AFTER 'COPY . /app/' so it is not overwritten)
+RUN sed -i 's/\r$//' /app/entrypoint.sh && chmod +x /app/entrypoint.sh
 
 # Expose Django port
 EXPOSE 8000
@@ -43,5 +44,5 @@ EXPOSE 8000
 # Set entrypoint
 ENTRYPOINT ["/app/entrypoint.sh"]
 
-# Default command: launch Django development server or Gunicorn
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+# Default command: launch Gunicorn for production, binding to Render's $PORT
+CMD ["sh", "-c", "exec gunicorn config.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers ${WEB_CONCURRENCY:-2}"]
