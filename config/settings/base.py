@@ -211,12 +211,12 @@ CORS_ALLOWED_ORIGINS = [
     if origin.strip()
 ]
 
-# CSRF Trusted Origins (Required for Cloudflare Tunnel, Ngrok, and Remote Access)
+# CSRF Trusted Origins (Required for Cloudflare Tunnel, Ngrok, Vercel Frontend, and Render)
 CSRF_TRUSTED_ORIGINS = [
     origin.strip()
     for origin in os.getenv(
         'CSRF_TRUSTED_ORIGINS',
-        'http://localhost:8000,http://127.0.0.1:8000,https://*.trycloudflare.com'
+        'http://localhost:8000,http://127.0.0.1:8000'
     ).split(',')
     if origin.strip()
 ]
