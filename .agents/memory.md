@@ -14,8 +14,8 @@
 | **Hackathon** | Smart India Hackathon (SIH) |
 | **Team Split** | Arpit = Django Backend; Omji = AI/ML models (CV, Risk, Route Ranking, ETA) |
 | **Repo** | `MakeWithArpit/SIH26002_Backend` (GitHub `main` branch) |
-| **Live Production URL** | `https://sih26002-backend-57w9.onrender.com` |
-| **Interactive API Docs** | `https://sih26002-backend-57w9.onrender.com/api/docs/` |
+| **Backend Hosting** | Render.com (Private API service behind frontend proxy) |
+| **API Base Path** | `/api/v1` |
 
 ---
 
@@ -23,7 +23,7 @@
 
 | Item | Value |
 |---|---|
-| **Production Host** | Render.com (`sih26002-backend-57w9.onrender.com`) |
+| **Production Host** | Render.com (Private API Web Service) |
 | **Local Runtime** | Docker Container (`python:3.12-slim-bookworm`) via Docker Compose |
 | **Python** | 3.12 |
 | **Django** | 5.x / 6.x |

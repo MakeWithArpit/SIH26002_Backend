@@ -2,8 +2,7 @@
 
 > **Smart India Hackathon (SIH)**  
 > **Backend Engine for North Eastern Region (NER) Multi-State Corridors**  
-> **Live Production Deployment (Render):** [https://sih26002-backend-57w9.onrender.com](https://sih26002-backend-57w9.onrender.com)  
-> **Interactive Swagger Documentation:** [https://sih26002-backend-57w9.onrender.com/api/docs/](https://sih26002-backend-57w9.onrender.com/api/docs/)  
+> **Backend Service:** Internal API Service (Served via reverse proxy / frontend client)  
 > **Status:** **100% Completed (Phases 0–12 Production Ready)**  
 
 ---

@@ -1,12 +1,9 @@
 # SIH26002 Backend — Complete API Reference Manual (Phases 0–12)
 
 > **Platform:** AI-Based Smart Logistics and Accessibility Intelligence Platform  
-> **Production Live URL (Render):** `https://sih26002-backend-57w9.onrender.com`  
-> **Local Development URL:** `http://localhost:8000`  
-> **API v1 Base URL:** `/api/v1`  
-> **Swagger UI Documentation:** `https://sih26002-backend-57w9.onrender.com/api/docs/`  
-> **ReDoc Documentation:** `https://sih26002-backend-57w9.onrender.com/api/redoc/`  
-> **OpenAPI 3.0 Schema:** `https://sih26002-backend-57w9.onrender.com/api/schema/`  
+> **API Base URL:** `/api/v1` (Proxied via Frontend / Gateway)  
+> **Documentation:** `/api/docs/` (Swagger UI), `/api/redoc/` (ReDoc)  
+> **OpenAPI Schema:** `/api/schema/`  
 > **Content-Type:** `application/json` (All endpoints accept & return JSON)  
 
 ---
@@ -645,22 +642,22 @@ Ultra-fast, read-only aggregation APIs for frontend executive monitoring dashboa
     "status": "operational",
     "timestamp": "2026-09-22T17:15:00Z",
     "documentation": {
-      "swagger_ui": "https://sih26002-backend-57w9.onrender.com/api/docs/",
-      "redoc": "https://sih26002-backend-57w9.onrender.com/api/redoc/",
-      "openapi_schema": "https://sih26002-backend-57w9.onrender.com/api/schema/"
+      "swagger_ui": "/api/docs/",
+      "redoc": "/api/redoc/",
+      "openapi_schema": "/api/schema/"
     },
-    "admin": "https://sih26002-backend-57w9.onrender.com/admin/",
-    "health_check": "https://sih26002-backend-57w9.onrender.com/api/v1/health/",
+    "admin": "/admin/",
+    "health_check": "/api/v1/health/",
     "endpoints_v1": {
-      "auth": "https://sih26002-backend-57w9.onrender.com/api/v1/auth/",
-      "accounts": "https://sih26002-backend-57w9.onrender.com/api/v1/accounts/",
-      "routes": "https://sih26002-backend-57w9.onrender.com/api/v1/routes/",
-      "reports": "https://sih26002-backend-57w9.onrender.com/api/v1/reports/",
-      "vehicles": "https://sih26002-backend-57w9.onrender.com/api/v1/vehicles/",
-      "trips": "https://sih26002-backend-57w9.onrender.com/api/v1/trips/",
-      "alerts": "https://sih26002-backend-57w9.onrender.com/api/v1/alerts/",
-      "sync": "https://sih26002-backend-57w9.onrender.com/api/v1/sync/",
-      "dashboard": "https://sih26002-backend-57w9.onrender.com/api/v1/dashboard/"
+      "auth": "/api/v1/auth/",
+      "accounts": "/api/v1/accounts/",
+      "routes": "/api/v1/routes/",
+      "reports": "/api/v1/reports/",
+      "vehicles": "/api/v1/vehicles/",
+      "trips": "/api/v1/trips/",
+      "alerts": "/api/v1/alerts/",
+      "sync": "/api/v1/sync/",
+      "dashboard": "/api/v1/dashboard/"
     }
   },
   "message": "Welcome to SIH26002 Backend API.",

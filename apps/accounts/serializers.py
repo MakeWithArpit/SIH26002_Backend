@@ -29,7 +29,7 @@ class UserRoleUpdateSerializer(serializers.Serializer):
 
 
 class RegisterSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, min_length=6)
+    password = serializers.CharField(write_only=True, min_length=6, max_length=128)
     role = serializers.ChoiceField(choices=Role.choices, default=Role.NORMAL_USER)
     phone = serializers.CharField(required=False, default='')
     department = serializers.CharField(required=False, default='')

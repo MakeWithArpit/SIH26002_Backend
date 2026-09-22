@@ -3,8 +3,8 @@
 > **Project Title:** AI-Based Smart Logistics and Accessibility Intelligence Platform  
 > **Challenge ID:** SIH26002 (Smart India Hackathon)  
 > **Corridor:** North Eastern Region (NER) Multi-State Transport Corridors (Assam, Meghalaya, Arunachal Pradesh, Nagaland, Manipur, Mizoram, Tripura, Sikkim)  
-> **Production Live URL:** `https://sih26002-backend-57w9.onrender.com`  
-> **Interactive API Docs (Swagger):** `https://sih26002-backend-57w9.onrender.com/api/docs/`  
+> **Backend Service:** Production Ready (Protected API Service behind Reverse Proxy / Cloudflare)  
+> **Documentation:** Internal Swagger UI & ReDoc available  
 > **Current Status:** **100% COMPLETED (All Phases 0 to 12 Production Ready)**  
 > **Report Date:** September 2026  
 
@@ -139,11 +139,11 @@ All features are covered by dedicated automated test suites running against the 
 
 ## 7. Deployment & Verification Guide
 
-### Live URL Checks
-- **Root Status:** `https://sih26002-backend-57w9.onrender.com/` (HTTP 200 JSON platform status)
-- **Health Check:** `https://sih26002-backend-57w9.onrender.com/health/` (HTTP 200 DB connectivity verified)
-- **Interactive Swagger Docs:** `https://sih26002-backend-57w9.onrender.com/api/docs/`
-- **Django Admin Panel:** `https://sih26002-backend-57w9.onrender.com/admin/`
+### Service Verification Endpoints
+- **Root Status:** `GET /` (HTTP 200 JSON platform status)
+- **Health Check:** `GET /health/` (HTTP 200 DB connectivity verified)
+- **Interactive Swagger Docs:** `GET /api/docs/`
+- **Django Admin Panel:** `GET /admin/`
 
 ### Demo Login Credentials
 - **Admin:** `admin_arpit` / `Password123!`

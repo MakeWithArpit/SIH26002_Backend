@@ -10,7 +10,6 @@ if allowed_env:
 else:
     ALLOWED_HOSTS = [
         '.onrender.com',
-        'sih26002-backend-57w9.onrender.com',
         'localhost',
         '127.0.0.1',
     ]
@@ -22,7 +21,6 @@ if csrf_env:
 else:
     CSRF_TRUSTED_ORIGINS = [
         'https://*.onrender.com',
-        'https://sih26002-backend-57w9.onrender.com',
         'http://localhost:8000',
         'http://127.0.0.1:8000',
     ]
