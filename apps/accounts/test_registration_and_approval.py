@@ -17,6 +17,7 @@ Phase B tests:
   - Non-FO cannot use approve endpoint
 """
 from django.contrib.auth.models import User
+from django.core.cache import cache
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -27,6 +28,7 @@ class RegistrationValidationTests(APITestCase):
     """Phase A: input validation and username suggestions."""
 
     def setUp(self):
+        cache.clear()
         self.url = reverse('auth-register')
         self.base_payload = {
             'username': 'existing_user',
@@ -102,6 +104,7 @@ class FieldOfficerApprovalFlowTests(APITestCase):
     """Phase B: FO pending/approve/reject lifecycle."""
 
     def setUp(self):
+        cache.clear()
         self.register_url = reverse('auth-register')
         self.login_url = reverse('token_obtain_pair')
 

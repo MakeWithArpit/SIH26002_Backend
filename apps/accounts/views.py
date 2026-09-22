@@ -10,6 +10,7 @@ from apps.common.responses import standard_response
 from .models import Profile, Role, ApprovalStatus
 from .permissions import IsAdminRole
 from .serializers import RegisterSerializer, UserSerializer, UserRoleUpdateSerializer
+from .throttling import LoginRateThrottle, RegisterRateThrottle
 
 
 # ---------------------------------------------------------------------------
@@ -40,6 +41,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+    throttle_classes = [LoginRateThrottle]
 
 
 # ---------------------------------------------------------------------------
@@ -48,6 +50,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 
 class RegisterView(APIView):
     permission_classes = [AllowAny]
+    throttle_classes = [RegisterRateThrottle]
 
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)

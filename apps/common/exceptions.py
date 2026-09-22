@@ -9,6 +9,7 @@ from rest_framework.exceptions import (
     ValidationError,
     NotFound,
     MethodNotAllowed,
+    Throttled,
 )
 
 logger = logging.getLogger(__name__)
@@ -44,6 +45,11 @@ def custom_exception_handler(exc, context):
         elif isinstance(exc, ValidationError):
             code = "INVALID_REQUEST"
             message = "Validation error in request parameters."
+        elif isinstance(exc, Throttled):
+            code = "TOO_MANY_REQUESTS"
+            wait_seconds = int(exc.wait) if exc.wait is not None else 60
+            message = f"Too many requests. Please wait {wait_seconds} seconds before trying again."
+            details = {"retry_after_seconds": wait_seconds}
         elif isinstance(exc, MethodNotAllowed):
             code = "METHOD_NOT_ALLOWED"
             message = f"Method '{context['request'].method}' not allowed on this endpoint."

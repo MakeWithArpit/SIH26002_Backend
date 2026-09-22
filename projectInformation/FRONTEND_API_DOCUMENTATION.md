@@ -44,14 +44,29 @@ All API endpoints return a standardized JSON envelope:
 ```json
 {
   "success": false,
-  "data": null,
-  "message": "Descriptive error message",
-  "errors": {
-    "field_name": ["Specific validation error explanation"]
-  },
-  "status_code": 400
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Descriptive error message",
+    "details": {}
+  }
 }
 ```
+
+### Rate Limiting Envelope (`HTTP 429 Too Many Requests`)
+When rate limits are exceeded, the API responds with `HTTP 429`:
+```json
+{
+  "success": false,
+  "error": {
+    "code": "TOO_MANY_REQUESTS",
+    "message": "Too many requests. Please wait 48 seconds before trying again.",
+    "details": {
+      "retry_after_seconds": 48
+    }
+  }
+}
+```
+> **Frontend Tip:** Use `error.details.retry_after_seconds` to show an active countdown timer on the UI (e.g., *"Too many attempts. Please try again in 48s"*).
 
 ### Authorization Header
 Include the JWT Bearer token on all protected endpoints:
@@ -66,6 +81,7 @@ Authorization: Bearer <access_token>
 ### 2.1 User Login (Obtain JWT)
 * **Endpoint:** `POST /api/v1/accounts/login/` (or `/api/v1/auth/login/`)
 * **Access:** Public
+* **Security & Rate Limit:** **5 attempts / minute per IP** (Brute-force protection)
 * **Request:**
 ```json
 {
@@ -78,6 +94,20 @@ Authorization: Bearer <access_token>
 {
   "refresh": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "access": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+* **Rate Limited Response (`429 Too Many Requests`):**
+Returned when an IP exceeds 5 login attempts within a 60-second window:
+```json
+{
+  "success": false,
+  "error": {
+    "code": "TOO_MANY_REQUESTS",
+    "message": "Too many requests. Please wait 52 seconds before trying again.",
+    "details": {
+      "retry_after_seconds": 52
+    }
+  }
 }
 ```
 
@@ -95,6 +125,7 @@ Authorization: Bearer <access_token>
 ### 2.3 User Registration
 * **Endpoint:** `POST /api/v1/accounts/register/`
 * **Access:** Public
+* **Security & Rate Limit:** **3 attempts / minute per IP** (Spam / Bot account creation protection)
 * **Allowed Roles:** `normal_user` (Driver), `field_officer` — **`admin` role is blocked from public registration**
 * **Request:**
 ```json
