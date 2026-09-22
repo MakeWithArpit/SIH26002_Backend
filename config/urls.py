@@ -1,4 +1,4 @@
-﻿from django.contrib import admin
+from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
@@ -20,6 +20,8 @@ urlpatterns = [
     path('api/v1/', include('apps.common.urls')),
     path('api/v1/reports/', include('apps.reports.urls')),
     path('api/v1/routes/', include('apps.routes.urls')),
+    path('api/v1/sync/', include('apps.sync.urls')),
+    path('api/v1/dashboard/', include('apps.dashboard.urls')),
     path('api/v1/', include('apps.vehicles.urls')),
 ]
 

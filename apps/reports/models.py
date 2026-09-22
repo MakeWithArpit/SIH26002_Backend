@@ -83,6 +83,15 @@ class IncidentReport(models.Model):
         db_index=True,
     )
 
+    # Phase 9 — Offline Sync: idempotency key supplied by the mobile client
+    client_sync_id = models.UUIDField(
+        null=True,
+        blank=True,
+        unique=True,
+        db_index=True,
+        help_text='Client-generated UUID for offline sync deduplication (Last-Write-Wins).',
+    )
+
     # Timestamps
     client_timestamp = models.DateTimeField(
         help_text='Device timestamp from the mobile app.'

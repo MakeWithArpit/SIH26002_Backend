@@ -35,9 +35,11 @@ THIRD_PARTY_APPS = [
 LOCAL_APPS = [
     'apps.accounts.apps.AccountsConfig',
     'apps.common',
+    'apps.dashboard.apps.DashboardConfig',
     'apps.intelligence.apps.IntelligenceConfig',
     'apps.reports.apps.ReportsConfig',
     'apps.routes.apps.RoutesConfig',
+    'apps.sync.apps.SyncConfig',
     'apps.vehicles.apps.VehiclesConfig',
 ]
 

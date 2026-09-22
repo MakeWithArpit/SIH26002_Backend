@@ -70,6 +70,14 @@ class LocationPing(models.Model):
     speed = models.FloatField(default=0.0, help_text="Speed in km/h")
     timestamp = models.DateTimeField(db_index=True)
     recorded_at = models.DateTimeField(auto_now_add=True)
+    # Phase 9 — Offline Sync: idempotency key supplied by the mobile client
+    client_sync_id = models.UUIDField(
+        null=True,
+        blank=True,
+        unique=True,
+        db_index=True,
+        help_text='Client-generated UUID for offline sync deduplication.',
+    )
 
     class Meta:
         ordering = ['-timestamp']
