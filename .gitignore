@@ -9,6 +9,7 @@ venv/
 .venv/
 ENV/
 .agents/
+.kilo/
 
 # Django & Celery
 *.log
