@@ -114,6 +114,14 @@ elif os.getenv('DATABASE_URL'):
                 ssl_require=os.getenv('DB_SSL_REQUIRE', 'True').lower() in ('true', '1', 't'),
             )
         }
+        # Optional read-replica: set DATABASE_REPLICA_URL to enable
+        _replica_url = os.getenv('DATABASE_REPLICA_URL')
+        if _replica_url:
+            DATABASES['replica'] = dj_database_url.parse(
+                _replica_url,
+                engine=os.getenv('DB_ENGINE', 'django.contrib.gis.db.backends.postgis'),
+                conn_max_age=600,
+            )
     except ImportError:
         from urllib.parse import urlparse
         db_url = urlparse(os.getenv('DATABASE_URL'))
@@ -128,6 +136,19 @@ elif os.getenv('DATABASE_URL'):
                 'OPTIONS': {'sslmode': os.getenv('DB_SSLMODE', 'require')},
             }
         }
+        # Optional read-replica: set DATABASE_REPLICA_URL to enable
+        _replica_url = os.getenv('DATABASE_REPLICA_URL')
+        if _replica_url:
+            _rep = urlparse(_replica_url)
+            DATABASES['replica'] = {
+                'ENGINE': os.getenv('DB_ENGINE', 'django.contrib.gis.db.backends.postgis'),
+                'NAME': _rep.path[1:] if _rep.path else 'postgres',
+                'USER': _rep.username or 'postgres',
+                'PASSWORD': _rep.password or '',
+                'HOST': _rep.hostname or 'localhost',
+                'PORT': str(_rep.port or 5432),
+                'OPTIONS': {'sslmode': os.getenv('DB_SSLMODE', 'require')},
+            }
 else:
     db_engine = os.getenv('DB_ENGINE', 'django.contrib.gis.db.backends.postgis')
     db_options = {}
@@ -146,6 +167,21 @@ else:
             'OPTIONS': db_options,
         }
     }
+    # Optional read-replica (manual config path)
+    _replica_host = os.getenv('DB_REPLICA_HOST')
+    if _replica_host:
+        DATABASES['replica'] = {
+            'ENGINE': db_engine,
+            'NAME': os.getenv('DB_REPLICA_NAME', os.getenv('DB_NAME', 'postgres')),
+            'USER': os.getenv('DB_REPLICA_USER', os.getenv('DB_USER', 'postgres')),
+            'PASSWORD': os.getenv('DB_REPLICA_PASSWORD', os.getenv('DB_PASSWORD', 'postgres')),
+            'HOST': _replica_host,
+            'PORT': os.getenv('DB_REPLICA_PORT', os.getenv('DB_PORT', '5432')),
+            'OPTIONS': db_options,
+        }
+
+# Primary-Replica router (activates automatically when 'replica' DB is present in DATABASES)
+DATABASE_ROUTERS = ['apps.common.routers.PrimaryReplicaRouter']
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
