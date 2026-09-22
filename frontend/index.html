@@ -1,417 +1,569 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SIH26002 API Tester — Render / Vercel</title>
-  <style>
-    :root {
-      --bg-dark: #0f172a;
-      --bg-card: #1e293b;
-      --bg-input: #0f172a;
-      --border: #334155;
-      --primary: #3b82f6;
-      --primary-hover: #2563eb;
-      --text: #f8fafc;
-      --text-muted: #94a3b8;
-      --success: #10b981;
-      --warning: #f59e0b;
-      --danger: #ef4444;
-      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: var(--bg-dark);
-      color: var(--text);
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
-    }
-    header {
-      background: var(--bg-card);
-      border-bottom: 1px solid var(--border);
-      padding: 12px 24px;
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-    }
-    .brand { font-size: 1.1rem; font-weight: 700; color: #60a5fa; display: flex; align-items: center; gap: 8px; }
-    .config-bar { display: flex; align-items: center; gap: 8px; flex: 1; max-width: 650px; }
-    .config-bar input {
-      flex: 1;
-      background: var(--bg-input);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 8px 12px;
-      border-radius: 6px;
-      font-family: var(--font-mono);
-      font-size: 0.85rem;
-    }
-    .btn {
-      background: var(--primary);
-      color: white;
-      border: none;
-      padding: 8px 14px;
-      border-radius: 6px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.15s ease;
-      white-space: nowrap;
-    }
-    .btn:hover { background: var(--primary-hover); }
-    .btn-secondary { background: var(--border); color: var(--text); }
-    .btn-secondary:hover { background: #475569; }
-    .btn-danger { background: var(--danger); }
-    .auth-status {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 0.85rem;
-      color: var(--text-muted);
-    }
-    .badge {
-      padding: 3px 8px;
-      border-radius: 9999px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      text-transform: uppercase;
-    }
-    .badge-get { background: #065f46; color: #34d399; }
-    .badge-post { background: #1e40af; color: #93c5fd; }
-    .badge-user { background: #3730a3; color: #c7d2fe; }
-    
-    .layout {
-      display: grid;
-      grid-template-columns: 240px 1fr 1fr;
-      flex: 1;
-      overflow: hidden;
-    }
-    @media (max-width: 1024px) {
-      .layout { grid-template-columns: 1fr; }
-    }
-    
-    /* Sidebar */
-    .sidebar {
-      background: #111827;
-      border-right: 1px solid var(--border);
-      padding: 16px 8px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    .nav-btn {
-      text-align: left;
-      background: transparent;
-      border: none;
-      color: var(--text-muted);
-      padding: 10px 14px;
-      border-radius: 6px;
-      font-size: 0.88rem;
-      font-weight: 500;
-      cursor: pointer;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .nav-btn:hover { background: var(--bg-card); color: var(--text); }
-    .nav-btn.active { background: var(--bg-card); color: #60a5fa; font-weight: 600; }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SIH26002 API Tester — Render / Vercel</title>
+    <style>
+      :root {
+        --bg-dark: #0f172a;
+        --bg-card: #1e293b;
+        --bg-input: #0f172a;
+        --border: #334155;
+        --primary: #3b82f6;
+        --primary-hover: #2563eb;
+        --text: #f8fafc;
+        --text-muted: #94a3b8;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --font-mono:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: var(--bg-dark);
+        color: var(--text);
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+      header {
+        background: var(--bg-card);
+        border-bottom: 1px solid var(--border);
+        padding: 12px 24px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+      .brand {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #60a5fa;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .config-bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 1;
+        max-width: 650px;
+      }
+      .config-bar input {
+        flex: 1;
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        color: var(--text);
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+      }
+      .btn {
+        background: var(--primary);
+        color: white;
+        border: none;
+        padding: 8px 14px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.15s ease;
+        white-space: nowrap;
+      }
+      .btn:hover {
+        background: var(--primary-hover);
+      }
+      .btn-secondary {
+        background: var(--border);
+        color: var(--text);
+      }
+      .btn-secondary:hover {
+        background: #475569;
+      }
+      .btn-danger {
+        background: var(--danger);
+      }
+      .auth-status {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+      }
+      .badge {
+        padding: 3px 8px;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+      }
+      .badge-get {
+        background: #065f46;
+        color: #34d399;
+      }
+      .badge-post {
+        background: #1e40af;
+        color: #93c5fd;
+      }
+      .badge-user {
+        background: #3730a3;
+        color: #c7d2fe;
+      }
 
-    /* Main testing pane */
-    .main-pane {
-      padding: 24px;
-      overflow-y: auto;
-      height: calc(100vh - 65px);
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-    .section-title { font-size: 1.25rem; font-weight: 700; color: var(--text); margin-bottom: 4px; }
-    .section-desc { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px; }
+      .layout {
+        display: grid;
+        grid-template-columns: 240px 1fr 1fr;
+        flex: 1;
+        overflow: hidden;
+      }
+      @media (max-width: 1024px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+      }
 
-    .card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    .card-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-    }
-    .card-title {
-      font-size: 0.95rem;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-family: var(--font-mono);
-    }
-    .card-desc { font-size: 0.82rem; color: var(--text-muted); }
-    
-    label { font-size: 0.78rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
-    textarea, input.field {
-      width: 100%;
-      background: var(--bg-input);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 8px 12px;
-      border-radius: 6px;
-      font-family: var(--font-mono);
-      font-size: 0.82rem;
-    }
-    textarea { resize: vertical; min-height: 80px; }
+      /* Sidebar */
+      .sidebar {
+        background: #111827;
+        border-right: 1px solid var(--border);
+        padding: 16px 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .nav-btn {
+        text-align: left;
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        padding: 10px 14px;
+        border-radius: 6px;
+        font-size: 0.88rem;
+        font-weight: 500;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .nav-btn:hover {
+        background: var(--bg-card);
+        color: var(--text);
+      }
+      .nav-btn.active {
+        background: var(--bg-card);
+        color: #60a5fa;
+        font-weight: 600;
+      }
 
-    /* Response Inspector */
-    .response-pane {
-      background: #090d16;
-      border-left: 1px solid var(--border);
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      height: calc(100vh - 65px);
-      overflow: hidden;
-    }
-    .res-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 12px;
-    }
-    .res-meta { display: flex; align-items: center; gap: 8px; }
-    .status-tag {
-      padding: 4px 10px;
-      border-radius: 4px;
-      font-weight: 700;
-      font-size: 0.82rem;
-      font-family: var(--font-mono);
-    }
-    .status-2xx { background: #065f46; color: #34d399; }
-    .status-4xx { background: #7f1d1d; color: #f87171; }
-    .status-5xx { background: #831843; color: #f472b6; }
-    .time-tag { font-size: 0.8rem; color: var(--text-muted); font-family: var(--font-mono); }
-    pre#responseBody {
-      flex: 1;
-      background: #020617;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 14px;
-      overflow: auto;
-      font-family: var(--font-mono);
-      font-size: 0.82rem;
-      line-height: 1.45;
-      color: #e2e8f0;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-  </style>
-</head>
-<body>
+      /* Main testing pane */
+      .main-pane {
+        padding: 24px;
+        overflow-y: auto;
+        height: calc(100vh - 65px);
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .section-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--text);
+        margin-bottom: 4px;
+      }
+      .section-desc {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-bottom: 16px;
+      }
 
-  <!-- Top Header -->
-  <header>
-    <div class="brand">
-      <span>🛡️</span> SIH26002 API Tester
-    </div>
-    
-    <div class="config-bar">
-      <input type="text" id="baseUrlInput" placeholder="Render Backend Base URL (e.g. https://sih26002-backend.onrender.com/api/v1)" />
-      <button class="btn btn-secondary" onclick="saveBaseUrl()">Save URL</button>
-      <button class="btn btn-secondary" onclick="pingDocs()">Ping /docs</button>
-    </div>
+      .card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .card-title {
+        font-size: 0.95rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-family: var(--font-mono);
+      }
+      .card-desc {
+        font-size: 0.82rem;
+        color: var(--text-muted);
+      }
 
-    <div class="auth-status">
-      <span id="userBadge" class="badge badge-user">Not Logged In</span>
-      <button class="btn btn-secondary" style="padding:4px 10px; font-size:0.75rem;" onclick="clearAuth()">Logout</button>
-    </div>
-  </header>
+      label {
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      textarea,
+      input.field {
+        width: 100%;
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        color: var(--text);
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-family: var(--font-mono);
+        font-size: 0.82rem;
+      }
+      textarea {
+        resize: vertical;
+        min-height: 80px;
+      }
 
-  <div class="layout">
-    <!-- Left Navigation -->
-    <nav class="sidebar">
-      <button class="nav-btn active" onclick="showTab('auth')">0. Authentication</button>
-      <button class="nav-btn" onclick="showTab('reports')">1. Field Incidents</button>
-      <button class="nav-btn" onclick="showTab('infra')">2. Road Intelligence</button>
-      <button class="nav-btn" onclick="showTab('routes')">3. Route Optimizer</button>
-      <button class="nav-btn" onclick="showTab('vehicles')">4. Telemetry & Trips</button>
-      <button class="nav-btn" onclick="showTab('pipeline')">5. Demo Pipeline</button>
-      <button class="nav-btn" onclick="showTab('alerts')">8. Infrastructure Alerts</button>
-    </nav>
+      /* Response Inspector */
+      .response-pane {
+        background: #090d16;
+        border-left: 1px solid var(--border);
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 65px);
+        overflow: hidden;
+      }
+      .res-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+      }
+      .res-meta {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .status-tag {
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-weight: 700;
+        font-size: 0.82rem;
+        font-family: var(--font-mono);
+      }
+      .status-2xx {
+        background: #065f46;
+        color: #34d399;
+      }
+      .status-4xx {
+        background: #7f1d1d;
+        color: #f87171;
+      }
+      .status-5xx {
+        background: #831843;
+        color: #f472b6;
+      }
+      .time-tag {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        font-family: var(--font-mono);
+      }
+      pre#responseBody {
+        flex: 1;
+        background: #020617;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 14px;
+        overflow: auto;
+        font-family: var(--font-mono);
+        font-size: 0.82rem;
+        line-height: 1.45;
+        color: #e2e8f0;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Top Header -->
+    <header>
+      <div class="brand"><span>🛡️</span> SIH26002 API Tester</div>
 
-    <!-- Main Dynamic Section -->
-    <main class="main-pane" id="tabContent">
-      <!-- Injected via JS -->
-    </main>
-
-    <!-- Right Response Inspector -->
-    <section class="response-pane">
-      <div class="res-header">
-        <div class="res-meta">
-          <span id="statusTag" class="status-tag status-2xx">READY</span>
-          <span id="timeTag" class="time-tag">0 ms</span>
-        </div>
-        <div>
-          <button class="btn btn-secondary" style="padding:4px 8px; font-size:0.75rem;" onclick="copyResponse()">Copy JSON</button>
-          <button class="btn btn-secondary" style="padding:4px 8px; font-size:0.75rem;" onclick="clearResponse()">Clear</button>
-        </div>
+      <div class="config-bar">
+        <input
+          type="text"
+          id="baseUrlInput"
+          placeholder="Render Backend Base URL (e.g. https://sih26002-backend.onrender.com/api/v1)"
+        />
+        <button class="btn btn-secondary" onclick="saveBaseUrl()">
+          Save URL
+        </button>
+        <button class="btn btn-secondary" onclick="pingDocs()">
+          Ping /docs
+        </button>
       </div>
-      <pre id="responseBody">// API response will appear here after request execution.</pre>
-    </section>
-  </div>
 
-  <script>
-    // State
-    const defaultUrl = 'https://sih26002-backend.onrender.com/api/v1';
-    let baseUrl = localStorage.getItem('sih_base_url') || defaultUrl;
-    let accessToken = localStorage.getItem('sih_access_token') || '';
-    let refreshToken = localStorage.getItem('sih_refresh_token') || '';
-    let currentUser = JSON.parse(localStorage.getItem('sih_user') || 'null');
+      <div class="auth-status">
+        <span id="userBadge" class="badge badge-user">Not Logged In</span>
+        <button
+          class="btn btn-secondary"
+          style="padding: 4px 10px; font-size: 0.75rem"
+          onclick="clearAuth()"
+        >
+          Logout
+        </button>
+      </div>
+    </header>
 
-    document.getElementById('baseUrlInput').value = baseUrl;
-    updateUserUI();
+    <div class="layout">
+      <!-- Left Navigation -->
+      <nav class="sidebar">
+        <button class="nav-btn active" onclick="showTab('auth')">
+          0. Authentication
+        </button>
+        <button class="nav-btn" onclick="showTab('reports')">
+          1. Field Incidents
+        </button>
+        <button class="nav-btn" onclick="showTab('infra')">
+          2. Road Intelligence
+        </button>
+        <button class="nav-btn" onclick="showTab('routes')">
+          3. Route Optimizer
+        </button>
+        <button class="nav-btn" onclick="showTab('vehicles')">
+          4. Telemetry & Trips
+        </button>
+        <button class="nav-btn" onclick="showTab('pipeline')">
+          5. Demo Pipeline
+        </button>
+        <button class="nav-btn" onclick="showTab('alerts')">
+          8. Infrastructure Alerts
+        </button>
+      </nav>
 
-    function saveBaseUrl() {
-      let val = document.getElementById('baseUrlInput').value.trim();
-      if (!val) val = defaultUrl;
-      val = val.replace(/\/+$/, ''); // remove trailing slash
-      baseUrl = val;
-      localStorage.setItem('sih_base_url', baseUrl);
-      alert('Base URL saved: ' + baseUrl);
-    }
+      <!-- Main Dynamic Section -->
+      <main class="main-pane" id="tabContent">
+        <!-- Injected via JS -->
+      </main>
 
-    function updateUserUI() {
-      const badge = document.getElementById('userBadge');
-      if (currentUser && currentUser.username) {
-        badge.textContent = `${currentUser.username} (${currentUser.role || 'user'})`;
-        badge.style.background = '#065f46';
-        badge.style.color = '#34d399';
-      } else {
-        badge.textContent = 'Not Logged In';
-        badge.style.background = '#3730a3';
-        badge.style.color = '#c7d2fe';
-      }
-    }
+      <!-- Right Response Inspector -->
+      <section class="response-pane">
+        <div class="res-header">
+          <div class="res-meta">
+            <span id="statusTag" class="status-tag status-2xx">READY</span>
+            <span id="timeTag" class="time-tag">0 ms</span>
+          </div>
+          <div>
+            <button
+              class="btn btn-secondary"
+              style="padding: 4px 8px; font-size: 0.75rem"
+              onclick="copyResponse()"
+            >
+              Copy JSON
+            </button>
+            <button
+              class="btn btn-secondary"
+              style="padding: 4px 8px; font-size: 0.75rem"
+              onclick="clearResponse()"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+        <pre id="responseBody">
+// API response will appear here after request execution.</pre
+        >
+      </section>
+    </div>
 
-    function clearAuth() {
-      accessToken = '';
-      refreshToken = '';
-      currentUser = null;
-      localStorage.removeItem('sih_access_token');
-      localStorage.removeItem('sih_refresh_token');
-      localStorage.removeItem('sih_user');
+    <script>
+      // State
+      const defaultUrl = "https://sih26002-backend.onrender.com/api/v1";
+      let baseUrl = localStorage.getItem("sih_base_url") || defaultUrl;
+      let accessToken = localStorage.getItem("sih_access_token") || "";
+      let refreshToken = localStorage.getItem("sih_refresh_token") || "";
+      let currentUser = JSON.parse(localStorage.getItem("sih_user") || "null");
+
+      document.getElementById("baseUrlInput").value = baseUrl;
       updateUserUI();
-      renderResponse({ success: true, message: 'Logged out successfully' }, 200, 0);
-    }
 
-    // Generic API Caller
-    async function callApi(method, endpoint, body = null, requireAuth = true) {
-      const statusEl = document.getElementById('statusTag');
-      const timeEl = document.getElementById('timeTag');
-      const bodyEl = document.getElementById('responseBody');
-
-      statusEl.textContent = 'PENDING';
-      statusEl.className = 'status-tag status-2xx';
-      timeEl.textContent = '...';
-      bodyEl.textContent = 'Executing request... (Note: Render free tier may take ~30-50s to wake up if asleep)';
-
-      const startTime = performance.now();
-      const headers = { 'Content-Type': 'application/json' };
-
-      if (requireAuth && accessToken) {
-        headers['Authorization'] = `Bearer ${accessToken}`;
+      function saveBaseUrl() {
+        let val = document.getElementById("baseUrlInput").value.trim();
+        if (!val) val = defaultUrl;
+        val = val.replace(/\/+$/, ""); // remove trailing slash
+        baseUrl = val;
+        localStorage.setItem("sih_base_url", baseUrl);
+        alert("Base URL saved: " + baseUrl);
       }
 
-      const fullUrl = `${baseUrl}${endpoint}`;
+      function updateUserUI() {
+        const badge = document.getElementById("userBadge");
+        if (currentUser && currentUser.username) {
+          badge.textContent = `${currentUser.username} (${currentUser.role || "user"})`;
+          badge.style.background = "#065f46";
+          badge.style.color = "#34d399";
+        } else {
+          badge.textContent = "Not Logged In";
+          badge.style.background = "#3730a3";
+          badge.style.color = "#c7d2fe";
+        }
+      }
 
-      try {
-        const options = {
-          method: method,
-          headers: headers
-        };
-        if (body && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
-          options.body = typeof body === 'string' ? body : JSON.stringify(body);
+      function clearAuth() {
+        accessToken = "";
+        refreshToken = "";
+        currentUser = null;
+        localStorage.removeItem("sih_access_token");
+        localStorage.removeItem("sih_refresh_token");
+        localStorage.removeItem("sih_user");
+        updateUserUI();
+        renderResponse(
+          { success: true, message: "Logged out successfully" },
+          200,
+          0,
+        );
+      }
+
+      // Generic API Caller
+      async function callApi(
+        method,
+        endpoint,
+        body = null,
+        requireAuth = true,
+      ) {
+        const statusEl = document.getElementById("statusTag");
+        const timeEl = document.getElementById("timeTag");
+        const bodyEl = document.getElementById("responseBody");
+
+        statusEl.textContent = "PENDING";
+        statusEl.className = "status-tag status-2xx";
+        timeEl.textContent = "...";
+        bodyEl.textContent =
+          "Executing request... (Note: Render free tier may take ~30-50s to wake up if asleep)";
+
+        const startTime = performance.now();
+        const headers = { "Content-Type": "application/json" };
+
+        if (requireAuth && accessToken) {
+          headers["Authorization"] = `Bearer ${accessToken}`;
         }
 
-        const res = await fetch(fullUrl, options);
-        const duration = Math.round(performance.now() - startTime);
-        const data = await res.json().catch(() => ({ raw_text: 'Failed to parse JSON response' }));
+        const fullUrl = `${baseUrl}${endpoint}`;
 
-        renderResponse(data, res.status, duration);
+        try {
+          const options = {
+            method: method,
+            headers: headers,
+          };
+          if (
+            body &&
+            (method === "POST" || method === "PUT" || method === "PATCH")
+          ) {
+            options.body =
+              typeof body === "string" ? body : JSON.stringify(body);
+          }
 
-        // Auto-save tokens if this was login or refresh
-        if (endpoint.includes('/accounts/login/') && data.data && data.data.access) {
-          accessToken = data.data.access;
-          refreshToken = data.data.refresh;
-          currentUser = data.data.user;
-          localStorage.setItem('sih_access_token', accessToken);
-          localStorage.setItem('sih_refresh_token', refreshToken);
-          localStorage.setItem('sih_user', JSON.stringify(currentUser));
-          updateUserUI();
-        } else if (endpoint.includes('/accounts/token/refresh/') && data.data && data.data.access) {
-          accessToken = data.data.access;
-          localStorage.setItem('sih_access_token', accessToken);
+          const res = await fetch(fullUrl, options);
+          const duration = Math.round(performance.now() - startTime);
+          const data = await res
+            .json()
+            .catch(() => ({ raw_text: "Failed to parse JSON response" }));
+
+          renderResponse(data, res.status, duration);
+
+          // Auto-save tokens if this was login or refresh
+          if (
+            endpoint.includes("/accounts/login/") &&
+            data.data &&
+            data.data.access
+          ) {
+            accessToken = data.data.access;
+            refreshToken = data.data.refresh;
+            currentUser = data.data.user;
+            localStorage.setItem("sih_access_token", accessToken);
+            localStorage.setItem("sih_refresh_token", refreshToken);
+            localStorage.setItem("sih_user", JSON.stringify(currentUser));
+            updateUserUI();
+          } else if (
+            endpoint.includes("/accounts/token/refresh/") &&
+            data.data &&
+            data.data.access
+          ) {
+            accessToken = data.data.access;
+            localStorage.setItem("sih_access_token", accessToken);
+          }
+        } catch (err) {
+          const duration = Math.round(performance.now() - startTime);
+          renderResponse(
+            {
+              error: "Network Error / CORS Issue / Render Sleeping",
+              details: err.message,
+              hint: "If backend was asleep on Render, wait 45s and retry. Also ensure CORS & SSL are enabled.",
+            },
+            0,
+            duration,
+          );
+        }
+      }
+
+      function renderResponse(data, status, duration) {
+        const statusEl = document.getElementById("statusTag");
+        const timeEl = document.getElementById("timeTag");
+        const bodyEl = document.getElementById("responseBody");
+
+        statusEl.textContent = status ? `HTTP ${status}` : "ERROR";
+        if (status >= 200 && status < 300) {
+          statusEl.className = "status-tag status-2xx";
+        } else if (status >= 400 && status < 500) {
+          statusEl.className = "status-tag status-4xx";
+        } else {
+          statusEl.className = "status-tag status-5xx";
         }
 
-      } catch (err) {
-        const duration = Math.round(performance.now() - startTime);
-        renderResponse({
-          error: 'Network Error / CORS Issue / Render Sleeping',
-          details: err.message,
-          hint: 'If backend was asleep on Render, wait 45s and retry. Also ensure CORS & SSL are enabled.'
-        }, 0, duration);
-      }
-    }
-
-    function renderResponse(data, status, duration) {
-      const statusEl = document.getElementById('statusTag');
-      const timeEl = document.getElementById('timeTag');
-      const bodyEl = document.getElementById('responseBody');
-
-      statusEl.textContent = status ? `HTTP ${status}` : 'ERROR';
-      if (status >= 200 && status < 300) {
-        statusEl.className = 'status-tag status-2xx';
-      } else if (status >= 400 && status < 500) {
-        statusEl.className = 'status-tag status-4xx';
-      } else {
-        statusEl.className = 'status-tag status-5xx';
+        timeEl.textContent = `${duration} ms`;
+        bodyEl.textContent = JSON.stringify(data, null, 2);
       }
 
-      timeEl.textContent = `${duration} ms`;
-      bodyEl.textContent = JSON.stringify(data, null, 2);
-    }
+      function copyResponse() {
+        const text = document.getElementById("responseBody").textContent;
+        navigator.clipboard.writeText(text);
+        alert("Copied response JSON to clipboard!");
+      }
 
-    function copyResponse() {
-      const text = document.getElementById('responseBody').textContent;
-      navigator.clipboard.writeText(text);
-      alert('Copied response JSON to clipboard!');
-    }
+      function clearResponse() {
+        document.getElementById("responseBody").textContent = "// Ready";
+        document.getElementById("statusTag").textContent = "READY";
+        document.getElementById("statusTag").className =
+          "status-tag status-2xx";
+        document.getElementById("timeTag").textContent = "0 ms";
+      }
 
-    function clearResponse() {
-      document.getElementById('responseBody').textContent = '// Ready';
-      document.getElementById('statusTag').textContent = 'READY';
-      document.getElementById('statusTag').className = 'status-tag status-2xx';
-      document.getElementById('timeTag').textContent = '0 ms';
-    }
+      function pingDocs() {
+        const docsUrl = baseUrl.replace("/api/v1", "/api/docs/");
+        window.open(docsUrl, "_blank");
+      }
 
-    function pingDocs() {
-      const docsUrl = baseUrl.replace('/api/v1', '/api/docs/');
-      window.open(docsUrl, '_blank');
-    }
-
-    // Tabs Definition
-    const tabs = {
-      auth: {
-        title: 'Phase 0: Authentication',
-        desc: 'Login with JWT, refresh token, and check user profile.',
-        render: () => `
+      // Tabs Definition
+      const tabs = {
+        auth: {
+          title: "Phase 0: Authentication",
+          desc: "Login with JWT, refresh token, and check user profile.",
+          render: () => `
           <div class="card">
             <div class="card-header">
               <span class="card-title"><span class="badge badge-post">POST</span> /accounts/login/</span>
@@ -440,12 +592,12 @@
             </div>
             <div class="card-desc">Fetches currently authenticated user details.</div>
           </div>
-        `
-      },
-      reports: {
-        title: 'Phase 1: Field Intelligence & Incident Photo Reporting',
-        desc: 'Submit incident report with ImageKit CDN URL and retrieve reported incidents.',
-        render: () => `
+        `,
+        },
+        reports: {
+          title: "Phase 1: Field Intelligence & Incident Photo Reporting",
+          desc: "Submit incident report with ImageKit CDN URL and retrieve reported incidents.",
+          render: () => `
           <div class="card">
             <div class="card-header">
               <span class="card-title"><span class="badge badge-post">POST</span> /reports/incidents/</span>
@@ -483,12 +635,12 @@
             </div>
             <input class="field" id="incId" placeholder="Incident ID (e.g. 1)" value="1" />
           </div>
-        `
-      },
-      infra: {
-        title: 'Phase 2: Road Network Graph & Disruption Risk Intelligence',
-        desc: 'Access districts, road segments, proximity search, and simulate disruption risk.',
-        render: () => `
+        `,
+        },
+        infra: {
+          title: "Phase 2: Road Network Graph & Disruption Risk Intelligence",
+          desc: "Access districts, road segments, proximity search, and simulate disruption risk.",
+          render: () => `
           <div class="card">
             <div class="card-header">
               <span class="card-title"><span class="badge badge-get">GET</span> /routes/districts/</span>
@@ -527,12 +679,12 @@
   "simulated_condition": "damaged"
 }</textarea>
           </div>
-        `
-      },
-      routes: {
-        title: 'Phase 3: Risk-Aware Route Optimization & Recommendations',
-        desc: 'Calculates candidate routes (Safe Alternative vs Direct Shortest) and generates AI safety rankings.',
-        render: () => `
+        `,
+        },
+        routes: {
+          title: "Phase 3: Risk-Aware Route Optimization & Recommendations",
+          desc: "Calculates candidate routes (Safe Alternative vs Direct Shortest) and generates AI safety rankings.",
+          render: () => `
           <div class="card">
             <div class="card-header">
               <span class="card-title"><span class="badge badge-post">POST</span> /routes/calculate/ (By Lat / Lng)</span>
@@ -560,12 +712,12 @@
   "destination_node": 1006
 }</textarea>
           </div>
-        `
-      },
-      vehicles: {
-        title: 'Phase 4: Vehicle Telemetry & Condition-Aware Trip ETAs',
-        desc: 'Register vehicles, stream GPS pings, check live locations, manage trips, and recalculate dynamic ETAs.',
-        render: () => `
+        `,
+        },
+        vehicles: {
+          title: "Phase 4: Vehicle Telemetry & Condition-Aware Trip ETAs",
+          desc: "Register vehicles, stream GPS pings, check live locations, manage trips, and recalculate dynamic ETAs.",
+          render: () => `
           <div class="card">
             <div class="card-header">
               <span class="card-title"><span class="badge badge-post">POST</span> /vehicles/</span>
@@ -632,12 +784,12 @@
               <button class="btn btn-danger" onclick="callApi('POST', '/trips/' + document.getElementById('tripActionId').value + '/complete/')">Complete Trip</button>
             </div>
           </div>
-        `
-      },
-      pipeline: {
-        title: 'Phase 5: End-to-End Pipeline Simulation',
-        desc: 'One-click full pipeline simulation: Incident → Spatial Snap → Risk Surge → Graph Rebuild → Route Re-ranking → ETA Recalculation.',
-        render: () => `
+        `,
+        },
+        pipeline: {
+          title: "Phase 5: End-to-End Pipeline Simulation",
+          desc: "One-click full pipeline simulation: Incident → Spatial Snap → Risk Surge → Graph Rebuild → Route Re-ranking → ETA Recalculation.",
+          render: () => `
           <div class="card" style="border: 2px solid #3b82f6;">
             <div class="card-header">
               <span class="card-title"><span class="badge badge-post">POST</span> /routes/simulate-pipeline/</span>
@@ -653,12 +805,12 @@
               <br/>• <strong>Step 6:</strong> Vehicle transit ETA recalculated with delay factors
             </div>
           </div>
-        `
-      },
-      alerts: {
-        title: 'Phase 8: Road & Infrastructure Alerts',
-        desc: 'Fetches real-time active road and infrastructure hazard alerts generated dynamically from corridor risk scores.',
-        render: () => `
+        `,
+        },
+        alerts: {
+          title: "Phase 8: Road & Infrastructure Alerts",
+          desc: "Fetches real-time active road and infrastructure hazard alerts generated dynamically from corridor risk scores.",
+          render: () => `
           <div class="card">
             <div class="card-header">
               <span class="card-title"><span class="badge badge-get">GET</span> /alerts/</span>
@@ -674,40 +826,44 @@
             </div>
             <div class="card-desc">Filters alerts within radius of specified coordinates.</div>
           </div>
-        `
-      }
-    };
+        `,
+        },
+      };
 
-    function showTab(tabKey) {
-      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-      const activeBtn = Array.from(document.querySelectorAll('.nav-btn')).find(b => b.getAttribute('onclick').includes(tabKey));
-      if (activeBtn) activeBtn.classList.add('active');
+      function showTab(tabKey) {
+        document
+          .querySelectorAll(".nav-btn")
+          .forEach((btn) => btn.classList.remove("active"));
+        const activeBtn = Array.from(
+          document.querySelectorAll(".nav-btn"),
+        ).find((b) => b.getAttribute("onclick").includes(tabKey));
+        if (activeBtn) activeBtn.classList.add("active");
 
-      const tab = tabs[tabKey];
-      if (!tab) return;
+        const tab = tabs[tabKey];
+        if (!tab) return;
 
-      const html = `
+        const html = `
         <div>
           <h2 class="section-title">${tab.title}</h2>
           <p class="section-desc">${tab.desc}</p>
         </div>
         ${tab.render()}
       `;
-      document.getElementById('tabContent').innerHTML = html;
-    }
+        document.getElementById("tabContent").innerHTML = html;
+      }
 
-    function fetchIncidentsFiltered() {
-      const type = document.getElementById('incFilterType').value.trim();
-      const sev = document.getElementById('incFilterSev').value.trim();
-      const params = new URLSearchParams();
-      if (type) params.append('incident_type', type);
-      if (sev) params.append('severity', sev);
-      const query = params.toString() ? '?' + params.toString() : '';
-      callApi('GET', '/reports/incidents/' + query);
-    }
+      function fetchIncidentsFiltered() {
+        const type = document.getElementById("incFilterType").value.trim();
+        const sev = document.getElementById("incFilterSev").value.trim();
+        const params = new URLSearchParams();
+        if (type) params.append("incident_type", type);
+        if (sev) params.append("severity", sev);
+        const query = params.toString() ? "?" + params.toString() : "";
+        callApi("GET", "/reports/incidents/" + query);
+      }
 
-    // Initialize Default Tab
-    showTab('auth');
-  </script>
-</body>
+      // Initialize Default Tab
+      showTab("auth");
+    </script>
+  </body>
 </html>

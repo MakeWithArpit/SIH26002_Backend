@@ -257,6 +257,25 @@ CELERY_TIMEZONE = TIME_ZONE
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60
 
+# Celery Beat Schedule (Periodic Tasks)
+from celery.schedules import crontab
+CELERY_BEAT_SCHEDULE = {
+    'sync-weather-every-6-hours': {
+        'task': 'apps.routes.tasks.sync_weather_task',
+        'schedule': crontab(minute=0, hour='*/6'),  # Every 6 hours: 00:00, 06:00, 12:00, 18:00
+        'options': {
+            'expires': 3600,  # Task expires if not executed within 1 hour
+        },
+    },
+    'sync-weather-and-update-risk-every-6-hours': {
+        'task': 'apps.routes.tasks.sync_weather_and_update_risk_task',
+        'schedule': crontab(minute=15, hour='*/6'),  # 15 minutes after weather sync
+        'options': {
+            'expires': 3600,
+        },
+    },
+}
+
 # Infrastructure Risk Engine Configuration (apps.intelligence)
 RISK_WEIGHT_LANDSLIDE_SUSCEPTIBILITY_HIGH = float(os.getenv('RISK_WEIGHT_LANDSLIDE_SUSCEPTIBILITY_HIGH', 30.0))
 RISK_WEIGHT_HISTORICAL_LANDSLIDE = float(os.getenv('RISK_WEIGHT_HISTORICAL_LANDSLIDE', 15.0))

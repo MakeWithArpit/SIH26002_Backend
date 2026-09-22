@@ -2,6 +2,12 @@
 from rest_framework.routers import DefaultRouter
 from .views import DistrictViewSet, InfrastructureViewSet, CalculateRouteView, SimulatePipelineView
 from .views_alerts import AlertsView
+from .views_weather import (
+    trigger_weather_sync,
+    trigger_weather_risk_pipeline,
+    get_latest_weather,
+    get_district_weather_history,
+)
 
 router = DefaultRouter()
 router.register(r'districts', DistrictViewSet, basename='district')
