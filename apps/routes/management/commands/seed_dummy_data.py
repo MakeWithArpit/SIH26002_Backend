@@ -125,16 +125,20 @@ class Command(BaseCommand):
             )
             if created:
                 user.set_password('Password123!')
-                user.save()
-                
-                profile, _ = Profile.objects.get_or_create(user=user)
-                profile.role = role
-                profile.phone = f"+9198765{random.randint(10000, 99999)}"
-                profile.department = department
-                profile.save()
                 created_count += 1
+
+            if role == Role.ADMIN:
+                user.is_staff = True
+            user.save()
+
+            profile, _ = Profile.objects.get_or_create(user=user)
+            profile.role = role
+            if not profile.phone:
+                profile.phone = f"+9198765{random.randint(10000, 99999)}"
+            profile.department = department
+            profile.save()
         
-        self.stdout.write(self.style.SUCCESS(f'  Created {created_count} users\n'))
+        self.stdout.write(self.style.SUCCESS(f'  Created/Synced {len(users_data)} users (new: {created_count})\n'))
 
     def seed_districts(self):
         """Create 50+ districts with real NER geometry"""

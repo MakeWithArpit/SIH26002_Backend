@@ -22,7 +22,7 @@ if [ "$USE_SQLITE" != "True" ] && [ "$USE_SQLITE" != "true" ] && [ "$USE_SQLITE"
     fi
 fi
 
-# Apply database migrations if running web service
+# Apply database migrations and sync if running web service
 case "$*" in
     *runserver*|*gunicorn*)
         echo "Applying database migrations..."
@@ -30,6 +30,9 @@ case "$*" in
         
         echo "Collecting static files..."
         python manage.py collectstatic --noinput || echo "Static collection completed"
+
+        echo "Synchronizing user roles and staff permissions..."
+        python manage.py assign_user_roles || echo "User role synchronization completed or skipped"
         ;;
 esac
 

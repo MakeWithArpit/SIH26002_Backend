@@ -2,19 +2,31 @@ from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import Profile, Role
 
+
 class ProfileSerializer(serializers.ModelSerializer):
+    role_display = serializers.CharField(source='get_role_display', read_only=True)
+
     class Meta:
         model = Profile
-        fields = ('role', 'phone', 'department', 'created_at', 'updated_at')
+        fields = ('role', 'role_display', 'phone', 'department', 'created_at', 'updated_at')
         read_only_fields = ('created_at', 'updated_at')
+
 
 class UserSerializer(serializers.ModelSerializer):
     profile = ProfileSerializer(read_only=True)
 
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'profile')
-        read_only_fields = ('id',)
+        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'is_staff', 'is_superuser', 'profile')
+        read_only_fields = ('id', 'is_superuser')
+
+
+class UserRoleUpdateSerializer(serializers.Serializer):
+    role = serializers.ChoiceField(choices=Role.choices, required=True)
+    department = serializers.CharField(required=False, allow_blank=True)
+    phone = serializers.CharField(required=False, allow_blank=True)
+    is_staff = serializers.BooleanField(required=False)
+
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=6)

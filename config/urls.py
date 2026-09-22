@@ -4,8 +4,14 @@ from django.conf import settings
 from django.conf.urls.static import static
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 from apps.routes.views_alerts import AlertsView
+from apps.common.views import APIRootView, HealthCheckView
 
 urlpatterns = [
+    # Root & Health Check
+    path('', APIRootView.as_view(), name='api-root'),
+    path('health/', HealthCheckView.as_view(), name='health-check-root'),
+
+    # Admin
     path('admin/', admin.site.urls),
     
     # OpenAPI Documentation
