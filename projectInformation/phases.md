@@ -697,23 +697,23 @@ Make the backend reliable and deployable after the core functionality is proven.
 
 ---
 
-# 3. Priority Summary
+# 3. Priority & Completion Summary
 
-| Phase | Feature | Priority |
-|---|---|---|
-| 0 | Backend Foundation | Required |
-| 1 | Field Intelligence + Photo Analysis | **P0** |
-| 2 | Infrastructure + Risk Prediction | **P0** |
-| 3 | Candidate Routes + Route Optimization | **P0** |
-| 4 | ETA Estimation | **P0** |
-| 5 | End-to-End Intelligence Pipeline | **P0** |
-| 6 | Weather Intelligence | P1 |
-| 7 | Vehicle Tracking | P1 |
-| 8 | Alerts | P1 |
-| 9 | Offline Sync | P1/P2 |
-| 10 | Accessibility Intelligence | P2 |
-| 11 | Dashboard APIs | P2 |
-| 12 | Production Hardening | P2 |
+| Phase | Feature | Priority | Status |
+|:---:|---|:---:|:---:|
+| **0** | Backend Foundation | Required | ✅ **COMPLETE** |
+| **1** | Field Intelligence + Photo Analysis | **P0** | ✅ **COMPLETE** |
+| **2** | Infrastructure + Risk Prediction | **P0** | ✅ **COMPLETE** |
+| **3** | Candidate Routes + Route Optimization | **P0** | ✅ **COMPLETE** |
+| **4** | ETA Estimation | **P0** | ✅ **COMPLETE** |
+| **5** | End-to-End Intelligence Pipeline | **P0** | ✅ **COMPLETE** |
+| **6** | Weather Intelligence | P1 | ✅ **COMPLETE** |
+| **7** | Vehicle Tracking | P1 | ✅ **COMPLETE** |
+| **8** | Alerts | P1 | ✅ **COMPLETE** |
+| **9** | Offline Sync | P1/P2 | ✅ **COMPLETE** |
+| **10** | Accessibility Intelligence | P2 | ✅ **COMPLETE** |
+| **11** | Dashboard APIs | P2 | ✅ **COMPLETE** |
+| **12** | Production Hardening & Roles | P2 | ✅ **COMPLETE** |
 
 ---
 
