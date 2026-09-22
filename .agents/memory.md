@@ -1,7 +1,7 @@
 # SIH26002 Backend — Living Memory
 
 > **Auto-maintained by the assistant.** Updated on every major milestone.
-> Last updated: 2026-09-13
+> Last updated: 2026-09-22
 
 ---
 
@@ -46,9 +46,9 @@
 | **Phase 3**  | Risk-Aware Route Optimization        | COMPLETE    | NetworkX graph pathfinding, dynamic risk penalties, ephemeral RouteCandidate, AI-03 ranking & explanation, POST /calculate/, 4/4 tests passing (20/20 total)    |
 | **Phase 4**  | Condition-Aware ETA Estimation       | COMPLETE    | Vehicle (cached telemetry), Trip (AI-02 ETA fields), LocationPing, ETAEstimationService, atomic ping ingestion, 7/7 tests passing (27/27 total)                 |
 | **Phase 5**  | End-to-End Intelligence Pipeline     | COMPLETE    | Management command `demo_pipeline`, `POST /api/v1/routes/simulate-pipeline/` API, 7/7 tests passing (34/34 total backend tests passing)                          |
-| **Phase 6**  | Weather Intelligence                 | COMPLETE    | Open-Meteo & IMD providers, WeatherSnapshot, sync_weather_task Celery periodic task, landslide & weather spatial enrichment                                      |
-| **Phase 7**  | Vehicle Tracking                     | IN PROGRESS | Vehicle telemetry ingestion and O(1) polling endpoints live; trip lifecycle underway                                                                           |
-| **Phase 8**  | Alerts & Automated Intelligence      | IN PROGRESS | AlertsView (`/api/v1/alerts/`) implemented; dynamic alert generation underway                                                                                   |
+| **Phase 6**  | Weather Intelligence                 | COMPLETE    | Open-Meteo live API, WeatherSnapshot, Celery Beat (every 6h), weather-to-risk pipeline, weather-based alerts, 4 new API endpoints, comprehensive tests |
+| **Phase 7**  | Vehicle Tracking                     | NOT STARTED | P1                                                                                                                                                           |
+| **Phase 8**  | Alerts & Automated Intelligence      | NOT STARTED | P1 (WeatherAlertService now integrated in Phase 6)                                                                                                           |
 | **Phase 9**  | Offline Sync                         | NOT STARTED | P1/P2                                                                                                                                                           |
 | **Phase 10** | Accessibility Intelligence           | NOT STARTED | P2                                                                                                                                                              |
 | **Phase 11** | Dashboard APIs                       | NOT STARTED | P2                                                                                                                                                              |
@@ -124,11 +124,16 @@
 - `apps/routes/views.py` & `urls.py` — `POST /api/v1/routes/simulate-pipeline/` endpoint orchestrating the full pipeline simulation in a single API call for hackathon judges and frontends.
 - `apps/routes/test_pipeline.py` — 7 comprehensive integration tests covering individual pipeline stages, spatial snap, risk surges, route reranking, ETA estimations, and API endpoints.
 
-### Phase 6 — Weather Intelligence & Landslide Enrichment
+### Phase 6 — Weather Intelligence (COMPLETE)
 - `apps/routes/services/weather/` — Weather provider abstraction (Open-Meteo live API + mock/IMD fallback)
-- `apps/routes/services/spatial_enrichment.py` — Spatial enrichment for weather snapshots and landslide susceptibility across the corridor
-- `apps/routes/tasks.py` — Celery task `sync_weather_task` scheduled via Celery Beat for continuous background ingestion
-- Dynamic rainfall integration updating `recent_rainfall_mm` and active weather warnings
+- `apps/routes/services/spatial_enrichment.py` — Spatial enrichment for weather snapshots and landslide susceptibility
+- `apps/routes/tasks.py` — Celery tasks: `sync_weather_task`, `sync_weather_and_update_risk_task`, `update_infrastructure_risk_task`
+- `apps/routes/views_weather.py` — 4 new API endpoints (sync, sync-and-update-risk, latest weather, district weather history)
+- `apps/routes/services/alerts.py` — WeatherAlertService for weather-based alert generation (extreme/heavy rainfall, warnings)
+- `config/settings/base.py` — CELERY_BEAT_SCHEDULE with 6-hour intervals
+- `apps/routes/tests_phase6_weather.py` — Comprehensive test suite (8 test classes)
+- Weather-to-Risk Integration: Real-time weather data automatically propagates to infrastructure risk scores
+- Automated 6-hourly weather sync + risk recalculation pipeline
 
 ### Phase 12 — Production Hardening, Docker & Cloud Database
 - Multi-container architecture via `docker-compose.yml`:
@@ -161,16 +166,16 @@
 
 ## 6. Currently Working On
 
-> Phase 6 (Weather) and Phase 12 (Containerization & Supabase) COMPLETE.
-> Next up: Phase 7 (Vehicle Tracking & Trip Lifecycle Polish) & Phase 8 (Alerts Engine).
+> Phase 6 (Weather Intelligence) COMPLETE as of 2026-09-22.
+> Next up: Phase 7 (Vehicle Tracking) & Phase 8 (Alerts & Automated Intelligence).
 
 ---
 
 ## 7. Immediate Next Steps
 
-- [ ] Vehicle tracking live trip simulation and telemetry replay
-- [ ] Push/pull alert generation triggered by elevated infrastructure risks
-- [ ] Offline sync endpoints (Phase 9) with LWW resolution
+- [ ] Phase 7: Vehicle tracking live trip simulation and telemetry replay
+- [ ] Phase 8: Push/pull alert generation triggered by elevated infrastructure risks
+- [ ] Phase 9: Offline sync endpoints with LWW resolution
 
 ---
 
@@ -186,3 +191,4 @@
 | 2026-09-05 | Phase 5 (E2E Intelligence Pipeline)| 7 (18 in routes) | 18 passed | End-to-end simulation, spatial snap, risk spike, reranking, demo API      |
 | 2026-09-05 | Full Suite (Phases 0–5)            | 34        | 34 passed | 100% pass across accounts, reports, routes, and vehicles                  |
 | 2026-09-13 | Phase 1 (Reports — ImageKit migration) | 5     | 5 passed  | `photo` ImageField → `photo_url` URLField; multipart → JSON; migration 0003 applied cleanly |
+| 2026-09-22 | Phase 6 (Weather Intelligence)      | 8         | 8 passed  | Weather sync service, weather-to-risk pipeline, alerts, API endpoints, Celery tasks          |
