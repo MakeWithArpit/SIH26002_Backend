@@ -1,7 +1,7 @@
 ﻿from django.urls import path
 from rest_framework.routers import DefaultRouter
 from .views import DistrictViewSet, InfrastructureViewSet, CalculateRouteView, SimulatePipelineView
-from .views_alerts import AlertsView
+from .views_alerts import AlertsView, AlertGenerateView, AlertResolveView, AlertSummaryView
 from .views_weather import (
     trigger_weather_sync,
     trigger_weather_risk_pipeline,
@@ -16,7 +16,12 @@ router.register(r'infrastructure', InfrastructureViewSet, basename='infrastructu
 urlpatterns = [
     path('calculate/', CalculateRouteView.as_view(), name='calculate-route'),
     path('simulate-pipeline/', SimulatePipelineView.as_view(), name='simulate-pipeline'),
+    
+    # Phase 8: Alert Endpoints
     path('alerts/', AlertsView.as_view(), name='alerts'),
+    path('alerts/generate/', AlertGenerateView.as_view(), name='alert-generate'),
+    path('alerts/summary/', AlertSummaryView.as_view(), name='alert-summary'),
+    path('alerts/<str:alert_id>/resolve/', AlertResolveView.as_view(), name='alert-resolve'),
     
     # Phase 6: Weather Intelligence Endpoints
     path('weather/sync/', trigger_weather_sync, name='trigger-weather-sync'),

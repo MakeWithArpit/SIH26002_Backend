@@ -1,171 +1,148 @@
 ﻿"""
-API View for IMD District-wise Weather Warnings.
+Alert API Views for Phase 8 - Persistent Alert System.
 """
-from datetime import datetime, timezone
+import logging
 from rest_framework.views import APIView
-from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import AllowAny
-from django.core.cache import cache
+from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
 
-from .services.imd_service import (
-    IMDWarningService,
-    CACHE_KEY_DATA,
-    CACHE_KEY_TIME,
-    CACHE_KEY_STALE_DATA,
-    CACHE_KEY_STALE_TIME,
-)
+from apps.common.responses import standard_response
+from apps.routes.models import Alert, AlertStatus
+from apps.routes.services.alerts import AlertService
+
+logger = logging.getLogger(__name__)
 
 
 class AlertsView(APIView):
     """
-    Retrieve live normalized weather warnings from the official IMD District Warning API.
-    Filtered specifically to Northeast India (NER) logistics demonstration districts.
+    GET /api/v1/routes/alerts/
+    
+    Returns active alerts from database with optional proximity filtering.
     """
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     @extend_schema(
-        summary="Get IMD District Weather Warnings",
-        description="Returns normalized 5-day weather alerts from the official IMD District Warning API for NER corridor districts.",
+        tags=['Alerts'],
+        summary="Get Active Alerts (Phase 8)",
+        description="Returns persisted alerts from database. Supports proximity filtering.",
         parameters=[
-            OpenApiParameter(name="force_refresh", type=bool, required=False, description="Force fresh fetch from IMD skipping cache"),
-            OpenApiParameter(name="severity", type=str, required=False, description="Filter by severity (High, Medium, Low)"),
-            OpenApiParameter(name="district", type=str, required=False, description="Filter by district name"),
+            OpenApiParameter(name='lat', type=float, location=OpenApiParameter.QUERY, required=False, description="Latitude"),
+            OpenApiParameter(name='lng', type=float, location=OpenApiParameter.QUERY, required=False, description="Longitude"),
+            OpenApiParameter(name='radius_m', type=int, location=OpenApiParameter.QUERY, required=False, description="Radius in meters (default: 50000)"),
         ],
-        responses={200: OpenApiResponse(description="Alert list retrieved"), 503: OpenApiResponse(description="IMD unavailable")},
-        tags=["Alerts"]
+        responses={200: OpenApiResponse(description="Active alerts retrieved")}
     )
-    def get(self, request, *args, **kwargs):
-        force_refresh = request.query_params.get("force_refresh", "false").lower() in ("true", "1")
-        severity_filter = request.query_params.get("severity", "").strip().capitalize()
-        district_filter = request.query_params.get("district", "").strip().lower()
+    def get(self, request):
+        lat = request.GET.get('lat')
+        lng = request.GET.get('lng')
+        radius = float(request.GET.get('radius_m', 50000))
+        
+        alerts = AlertService.get_active_alerts(
+            lat=float(lat) if lat else None,
+            lng=float(lng) if lng else None,
+            radius_m=radius
+        )
+        
+        alert_list = []
+        for a in alerts:
+            alert_dict = {
+                'alert_id': a.alert_id,
+                'type': a.alert_type,
+                'severity': a.severity,
+                'title': a.title,
+                'description': a.description,
+                'recommended_action': a.recommended_action,
+                'infrastructure_id': a.infrastructure_id,
+                'risk_score': a.risk_score,
+                'risk_level': a.risk_level,
+                'generated_at': a.generated_at.isoformat() if a.generated_at else None,
+            }
+            if a.location:
+                alert_dict['location'] = {'lat': a.location.y, 'lng': a.location.x}
+            alert_list.append(alert_dict)
+        
+        return standard_response(
+            data={'alerts': alert_list, 'total': len(alert_list)},
+            message="Active alerts retrieved",
+            status_code=status.HTTP_200_OK
+        )
 
-        result = IMDWarningService.fetch_warnings(force_refresh=force_refresh)
 
-        if not result.get("success") and not result.get("alerts"):
-            return Response(result, status=status.HTTP_503_SERVICE_UNAVAILABLE)
-
-        alerts = result.get("alerts", [])
-
-        if severity_filter and severity_filter in ("High", "Medium", "Low"):
-            alerts = [a for a in alerts if a.get("severity") == severity_filter]
-
-        if district_filter:
-            alerts = [a for a in alerts if district_filter in a.get("district", "").lower()]
-
-        response_data = {
-            "success": True,
-            "source": result.get("source", "India Meteorological Department (IMD)"),
-            "total": len(alerts),
-            "total_unfiltered": result.get("total", len(alerts)),
-            "last_updated": result.get("last_updated"),
-            "cached": result.get("cached", False),
-            "alerts": alerts,
-        }
-        if "warning" in result:
-            response_data["warning"] = result["warning"]
-
-        return Response(response_data, status=status.HTTP_200_OK)
+class AlertGenerateView(APIView):
+    """
+    POST /api/v1/routes/alerts/generate/
+    
+    Manually trigger alert generation from current conditions.
+    """
+    permission_classes = [IsAuthenticated]
 
     @extend_schema(
-        summary="Seed Realistic IMD Warning Cache (Demo/Fallback)",
-        description="Populates the backend cache with realistic IMD NER corridor records when live external credentials are not present.",
-        tags=["Alerts"]
+        tags=['Alerts'],
+        summary="Generate Alerts",
+        description="Generate and persist alerts from current infrastructure risk and weather data.",
+        responses={200: OpenApiResponse(description="Alerts generated")}
     )
-    def post(self, request, *args, **kwargs):
-        sample_imd_records = [
-            {
-                "Obj_id": "573",
-                "District": "East Khasi Hills",
-                "Date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-                "UTC": "03:00",
-                "Day_1": "16",
-                "Day1_Color": 1,
-                "Day_2": "2,4",
-                "Day2_Color": 2,
-                "Day_3": "4",
-                "Day3_Color": 3,
-                "Day_4": "1",
-                "Day4_Color": 4,
-                "Day_5": "1",
-                "Day5_Color": 4,
-            },
-            {
-                "Obj_id": "302",
-                "District": "Ri-Bhoi",
-                "Date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-                "UTC": "03:00",
-                "Day_1": "4",
-                "Day1_Color": 2,
-                "Day_2": "2",
-                "Day2_Color": 3,
-                "Day_3": "1",
-                "Day3_Color": 4,
-                "Day_4": "1",
-                "Day4_Color": 4,
-                "Day_5": "1",
-                "Day5_Color": 4,
-            },
-            {
-                "Obj_id": "301",
-                "District": "Kamrup Metropolitan",
-                "Date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-                "UTC": "03:00",
-                "Day_1": "2",
-                "Day1_Color": 2,
-                "Day_2": "1",
-                "Day2_Color": 4,
-                "Day_3": "1",
-                "Day3_Color": 4,
-                "Day_4": "1",
-                "Day4_Color": 4,
-                "Day_5": "1",
-                "Day5_Color": 4,
-            },
-            {
-                "Obj_id": "315",
-                "District": "Karbi Anglong",
-                "Date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-                "UTC": "03:00",
-                "Day_1": "2",
-                "Day1_Color": 3,
-                "Day_2": "1",
-                "Day2_Color": 4,
-                "Day_3": "1",
-                "Day3_Color": 4,
-                "Day_4": "1",
-                "Day4_Color": 4,
-                "Day_5": "1",
-                "Day5_Color": 4,
-            },
-            {
-                "Obj_id": "410",
-                "District": "Dimapur",
-                "Date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-                "UTC": "03:00",
-                "Day_1": "8",
-                "Day1_Color": 3,
-                "Day_2": "1",
-                "Day2_Color": 4,
-                "Day_3": "1",
-                "Day3_Color": 4,
-                "Day_4": "1",
-                "Day4_Color": 4,
-                "Day_5": "1",
-                "Day5_Color": 4,
-            },
-        ]
-        alerts = IMDWarningService.normalize_records(sample_imd_records)
-        now_iso = datetime.now(timezone.utc).isoformat()
-        cache.set(CACHE_KEY_DATA, alerts, timeout=600)
-        cache.set(CACHE_KEY_TIME, now_iso, timeout=600)
-        cache.set(CACHE_KEY_STALE_DATA, alerts, timeout=86400)
-        cache.set(CACHE_KEY_STALE_TIME, now_iso, timeout=86400)
-        return Response({
-            "success": True,
-            "message": "Demo IMD warnings cached successfully",
-            "total": len(alerts),
-            "last_updated": now_iso,
-            "alerts": alerts,
-        }, status=status.HTTP_200_OK)
+    def post(self, request):
+        result = AlertService.generate_and_persist_alerts()
+        
+        return standard_response(
+            data=result,
+            message=f"Generated {result['total_generated']} alerts, persisted {result['persisted']}",
+            status_code=status.HTTP_200_OK
+        )
+
+
+class AlertResolveView(APIView):
+    """
+    POST /api/v1/routes/alerts/{alert_id}/resolve/
+    
+    Resolve an alert.
+    """
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        tags=['Alerts'],
+        summary="Resolve Alert",
+        description="Mark an alert as resolved.",
+        responses={200: OpenApiResponse(description="Alert resolved")}
+    )
+    def post(self, request, alert_id):
+        success = AlertService.resolve_alert(alert_id)
+        
+        if success:
+            return standard_response(
+                data={'alert_id': alert_id, 'status': 'resolved'},
+                message=f"Alert {alert_id} resolved",
+                status_code=status.HTTP_200_OK
+            )
+        else:
+            return standard_response(
+                success=False,
+                message=f"Alert {alert_id} not found",
+                status_code=status.HTTP_404_NOT_FOUND
+            )
+
+
+class AlertSummaryView(APIView):
+    """
+    GET /api/v1/routes/alerts/summary/
+    
+    Get alert counts by severity and status.
+    """
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        tags=['Alerts'],
+        summary="Get Alert Summary",
+        description="Get count of alerts by severity and status.",
+        responses={200: OpenApiResponse(description="Alert summary retrieved")}
+    )
+    def get(self, request):
+        summary = AlertService.get_alert_summary()
+        
+        return standard_response(
+            data=summary,
+            message="Alert summary retrieved",
+            status_code=status.HTTP_200_OK
+        )
