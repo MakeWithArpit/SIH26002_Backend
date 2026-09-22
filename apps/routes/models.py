@@ -2,6 +2,264 @@ from django.contrib.gis.db import models
 from django.contrib.auth.models import User
 
 
+class ConnectivityStatus(models.TextChoices):
+    NORMAL = 'normal', 'Normal'
+    DEGRADED = 'degraded', 'Degraded'
+    CRITICAL = 'critical', 'Critical'
+
+
+class InfrastructureType(models.TextChoices):
+    ROAD = 'road', 'Road'
+    BRIDGE = 'bridge', 'Bridge'
+    CULVERT = 'culvert', 'Culvert'
+    TUNNEL = 'tunnel', 'Tunnel'
+
+
+class RoadClassification(models.TextChoices):
+    NATIONAL_HIGHWAY = 'national_highway', 'National Highway'
+    STATE_HIGHWAY = 'state_highway', 'State Highway'
+    MAJOR_DISTRICT_ROAD = 'major_district_road', 'Major District Road'
+    RURAL_ROAD = 'rural_road', 'Rural Road'
+
+
+class OperationalStatus(models.TextChoices):
+    ACCESSIBLE = 'accessible', 'Accessible'
+    RISKY = 'risky', 'Risky'
+    BLOCKED = 'blocked', 'Blocked'
+
+
+class PhysicalCondition(models.TextChoices):
+    GOOD = 'good', 'Good'
+    MODERATE = 'moderate', 'Moderate'
+    POOR = 'poor', 'Poor'
+    DAMAGED = 'damaged', 'Damaged'
+
+
+class HazardLevel(models.TextChoices):
+    LOW = 'low', 'Low'
+    MEDIUM = 'medium', 'Medium'
+    HIGH = 'high', 'High'
+
+
+class RiskLevel(models.TextChoices):
+    LOW = 'low', 'Low'
+    MEDIUM = 'medium', 'Medium'
+    HIGH = 'high', 'High'
+
+
+class WeatherCondition(models.TextChoices):
+    CLEAR = 'clear', 'Clear'
+    MODERATE = 'moderate', 'Moderate'
+    HEAVY = 'heavy', 'Heavy'
+    EXTREME = 'extreme', 'Extreme'
+
+
+class District(models.Model):
+    """
+    District administrative boundary and accessibility indicator.
+    """
+    name = models.CharField(max_length=100, unique=True)
+    state = models.CharField(max_length=100)
+    geom = models.MultiPolygonField(srid=4326, geography=True)
+    accessibility_score = models.FloatField(default=10.0, help_text="Accessibility index (0.0 to 10.0)")
+    connectivity_status = models.CharField(
+        max_length=20,
+        choices=ConnectivityStatus.choices,
+        default=ConnectivityStatus.NORMAL,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return f"{self.name}, {self.state}"
+
+    @property
+    def latest_weather(self):
+        return self.weather_snapshots.order_by('-recorded_at').first()
+
+    def get_representative_point(self):
+        """
+        Derive a representative geographic point (lat, lng) guaranteed to lie
+        on/in the district geometry using point_on_surface.
+        """
+        if not self.geom:
+            raise ValueError(f"District '{self.name}' has no geometry defined.")
+        pt = self.geom.point_on_surface
+        if not pt:
+            pt = self.geom.centroid
+        return (round(pt.y, 4), round(pt.x, 4))
+
+
+class Infrastructure(models.Model):
+    """
+    Central road network entity (RoadSegment, bridge, culvert, etc.).
+    All intelligence (disruption risk, weather, incident photos) attaches here.
+    """
+    district = models.ForeignKey(
+        District,
+        on_delete=models.CASCADE,
+        related_name='infrastructure',
+    )
+    name = models.CharField(max_length=255)
+    infra_type = models.CharField(
+        max_length=20,
+        choices=InfrastructureType.choices,
+        default=InfrastructureType.ROAD,
+        db_index=True,
+    )
+    road_classification = models.CharField(
+        max_length=30,
+        choices=RoadClassification.choices,
+        default=RoadClassification.NATIONAL_HIGHWAY,
+    )
+    geom = models.LineStringField(srid=4326, geography=True)
+
+    # Graph connectivity nodes for routing (OSM node IDs)
+    start_node = models.BigIntegerField(db_index=True)
+    end_node = models.BigIntegerField(db_index=True)
+    oneway = models.BooleanField(default=False)
+    osm_way_id = models.BigIntegerField(null=True, blank=True, help_text="OSM way ID for source provenance")
+    osm_segment_id = models.CharField(
+        max_length=255, 
+        unique=True, 
+        null=True, 
+        blank=True, 
+        help_text="Deterministic OSM identity: {way_id}-{min_node}-{max_node}-{key}"
+    )
+
+    # Physical properties
+    length_km = models.FloatField(default=0.0)
+    base_speed_kmh = models.FloatField(default=50.0)
+    base_travel_time_min = models.FloatField(default=0.0)
+
+    # Operational status & physical condition
+    status = models.CharField(
+        max_length=20,
+        choices=OperationalStatus.choices,
+        default=OperationalStatus.ACCESSIBLE,
+        db_index=True,
+    )
+    condition = models.CharField(
+        max_length=20,
+        choices=PhysicalCondition.choices,
+        default=PhysicalCondition.GOOD,
+    )
+
+    # Static hazard attributes
+    landslide_susceptibility = models.CharField(
+        max_length=10,
+        choices=HazardLevel.choices,
+        default=HazardLevel.LOW,
+    )
+    historical_landslide_count = models.PositiveIntegerField(default=0)
+    landslide_nearest_distance_m = models.FloatField(
+        null=True,
+        blank=True,
+        help_text="Distance in meters to nearest historical landslide record.",
+    )
+    landslide_nearby_count = models.PositiveIntegerField(
+        default=0,
+        help_text="Number of historical landslide records within the configured proximity threshold.",
+    )
+    landslide_zone_member = models.BooleanField(
+        default=False,
+        help_text="Whether the Infrastructure geometry intersects a susceptibility zone.",
+    )
+    flood_hazard_zone = models.CharField(
+        max_length=10,
+        choices=HazardLevel.choices,
+        default=HazardLevel.LOW,
+    )
+
+    # Dynamic conditions
+    recent_rainfall_mm = models.FloatField(default=0.0)
+    weather_warning = models.BooleanField(default=False)
+
+    # Calculated Disruption Risk (AI-01 interface)
+    risk_score = models.FloatField(default=0.0, help_text="0 to 100 risk score", db_index=True)
+    disruption_probability = models.FloatField(default=0.0, help_text="0.0 to 1.0 probability")
+    risk_level = models.CharField(
+        max_length=10,
+        choices=RiskLevel.choices,
+        default=RiskLevel.LOW,
+        db_index=True,
+    )
+    top_factors = models.JSONField(default=list, blank=True)
+    last_assessed_at = models.DateTimeField(auto_now=True)
+    risk_updated_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Timestamp of latest calculated infrastructure risk",
+    )
+
+    class Meta:
+        verbose_name = 'Infrastructure Segment'
+        verbose_name_plural = 'Infrastructure Segments'
+        ordering = ['name']
+        indexes = [
+            models.Index(fields=['district', 'status', 'risk_level']),
+        ]
+
+    def __str__(self):
+        return f"{self.name} ({self.get_infra_type_display()}) — {self.risk_level.upper()}"
+
+    def save(self, *args, **kwargs):
+        # Auto-compute base travel time if not set
+        if self.base_speed_kmh > 0 and (not self.base_travel_time_min or self.base_travel_time_min <= 0):
+            self.base_travel_time_min = round((self.length_km / self.base_speed_kmh) * 60.0, 2)
+        super().save(*args, **kwargs)
+
+
+class WeatherSnapshot(models.Model):
+    """
+    Persisted historical snapshot of weather conditions associated with a District.
+    Ingested periodically from external weather providers (e.g., Open-Meteo).
+    """
+    district = models.ForeignKey(
+        District,
+        on_delete=models.CASCADE,
+        related_name='weather_snapshots',
+    )
+    rainfall_mm = models.FloatField(
+        default=0.0,
+        help_text="Accumulated rainfall over recent window (e.g. past 24 hours) in mm",
+    )
+    condition = models.CharField(
+        max_length=20,
+        choices=WeatherCondition.choices,
+        default=WeatherCondition.CLEAR,
+    )
+    temperature_c = models.FloatField(null=True, blank=True)
+    humidity_pct = models.FloatField(null=True, blank=True)
+    wind_speed_kmh = models.FloatField(null=True, blank=True)
+    weather_warning = models.BooleanField(
+        default=False,
+        help_text="Official weather warning status (False unless from an official warning source)",
+    )
+    warning_details = models.CharField(max_length=255, blank=True, default='')
+    raw_payload = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Raw provider response payload for audit and debugging",
+    )
+    recorded_at = models.DateTimeField(db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Weather Snapshot'
+        verbose_name_plural = 'Weather Snapshots'
+        ordering = ['-recorded_at']
+        indexes = [
+            models.Index(fields=['district', '-recorded_at']),
+        ]
+
+    def __str__(self):
+        return f"{self.district.name} — {self.condition} ({self.rainfall_mm}mm) at {self.recorded_at}"
+
+
 class AlertType(models.TextChoices):
     INFRASTRUCTURE_RISK = 'infrastructure_risk', 'Infrastructure Risk'
     EXTREME_WEATHER = 'extreme_weather', 'Extreme Weather'
@@ -69,14 +327,14 @@ class Alert(models.Model):
     
     # Related entities
     infrastructure = models.ForeignKey(
-        'routes.Infrastructure',
+        Infrastructure,
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
         related_name='alerts',
     )
     district = models.ForeignKey(
-        'routes.District',
+        District,
         null=True,
         blank=True,
         on_delete=models.SET_NULL,

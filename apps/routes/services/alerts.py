@@ -14,149 +14,6 @@ from apps.routes.models import Infrastructure, WeatherSnapshot, District, Alert,
 logger = logging.getLogger(__name__)
 
 
-class AlertService:
-    """
-    Service for generating and persisting infrastructure and weather alerts.
-    """
-    
-    @classmethod
-    def generate_and_persist_alerts(cls) -> Dict[str, Any]:
-        """
-        Generate alerts from current conditions and persist to database.
-        Returns summary of created alerts.
-        """
-        infra_alerts = cls.generate_infrastructure_alerts()
-        weather_alerts = cls.generate_weather_alerts()
-        
-        created_count = 0
-        for alert_data in infra_alerts + weather_alerts:
-            if cls._persist_alert(alert_data):
-                created_count += 1
-        
-        return {
-            'total_generated': len(infra_alerts) + len(weather_alerts),
-            'persisted': created_count,
-            'infrastructure_alerts': len(infra_alerts),
-            'weather_alerts': len(weather_alerts),
-        }
-    
-    @classmethod
-    def _persist_alert(cls, alert_data: Dict[str, Any]) -> bool:
-        """
-        Persist a single alert to database.
-        Returns True if created, False if already exists or error.
-        """
-        try:
-            alert_id = alert_data.get('alert_id')
-            
-            # Check if alert already exists
-            existing = Alert.objects.filter(alert_id=alert_id, status=AlertStatus.ACTIVE).first()
-            if existing:
-                return False
-            
-            # Parse severity
-            severity_map = {'critical': AlertSeverity.CRITICAL, 'high': AlertSeverity.HIGH, 'medium': AlertSeverity.MEDIUM, 'low': AlertSeverity.LOW}
-            severity = severity_map.get(alert_data.get('severity', 'medium'), AlertSeverity.MEDIUM)
-            
-            # Parse alert type
-            type_map = {
-                'infrastructure_risk': AlertType.INFRASTRUCTURE_RISK,
-                'extreme_weather': AlertType.EXTREME_WEATHER,
-                'heavy_rainfall': AlertType.HEAVY_RAINFALL,
-                'weather_warning': AlertType.WEATHER_WARNING,
-            }
-            alert_type = type_map.get(alert_data.get('type', 'infrastructure_risk'), AlertType.INFRASTRUCTURE_RISK)
-            
-            # Get location
-            location = None
-            if alert_data.get('location'):
-                from django.contrib.gis.geos import Point
-                loc = alert_data['location']
-                location = Point(loc['lng'], loc['lat'], srid=4326)
-            
-            # Get related entities
-            infra = None
-            district = None
-            if alert_data.get('infrastructure_id'):
-                infra = Infrastructure.objects.filter(id=alert_data['infrastructure_id']).first()
-                if infra:
-                    district = infra.district
-            
-            Alert.objects.create(
-                alert_id=alert_id,
-                alert_type=alert_type,
-                severity=severity,
-                status=AlertStatus.ACTIVE,
-                title=alert_data.get('title', ''),
-                description=alert_data.get('description', ''),
-                recommended_action=alert_data.get('recommended_action', ''),
-                location=location,
-                infrastructure=infra,
-                district=district,
-                risk_score=alert_data.get('risk_score'),
-                risk_level=alert_data.get('risk_level', ''),
-                disruption_probability=alert_data.get('disruption_probability'),
-                rainfall_mm=alert_data.get('rainfall_mm'),
-                generated_by='system',
-            )
-            return True
-        except Exception as e:
-            logger.error(f"Failed to persist alert: {e}")
-            return False
-    
-    @classmethod
-    def get_active_alerts(cls, lat=None, lng=None, radius_m=50000) -> List[Alert]:
-        """
-        Get active alerts from database, optionally filtered by proximity.
-        """
-        qs = Alert.objects.filter(status=AlertStatus.ACTIVE)
-        
-        if lat is not None and lng is not None:
-            from django.contrib.gis.geos import Point
-            from django.contrib.gis.measure import D
-            point = Point(lng, lat, srid=4326)
-            qs = qs.filter(location__dwithin=(point, D(m=radius_m)))
-        
-        return list(qs)
-    
-    @classmethod
-    def acknowledge_alert(cls, alert_id: str, user) -> bool:
-        """Acknowledge an alert."""
-        try:
-            alert = Alert.objects.get(alert_id=alert_id)
-            alert.status = AlertStatus.ACKNOWLEDGED
-            alert.acknowledged_at = timezone.now()
-            alert.assigned_to = user
-            alert.save()
-            return True
-        except Alert.DoesNotExist:
-            return False
-    
-    @classmethod
-    def resolve_alert(cls, alert_id: str) -> bool:
-        """Resolve an alert."""
-        try:
-            alert = Alert.objects.get(alert_id=alert_id)
-            alert.status = AlertStatus.RESOLVED
-            alert.resolved_at = timezone.now()
-            alert.save()
-            return True
-        except Alert.DoesNotExist:
-            return False
-    
-    @classmethod
-    def get_alert_summary(cls) -> Dict[str, Any]:
-        """Get summary counts by severity and status."""
-        return {
-            'total': Alert.objects.count(),
-            'active': Alert.objects.filter(status=AlertStatus.ACTIVE).count(),
-            'acknowledged': Alert.objects.filter(status=AlertStatus.ACKNOWLEDGED).count(),
-            'resolved': Alert.objects.filter(status=AlertStatus.RESOLVED).count(),
-            'critical': Alert.objects.filter(severity=AlertSeverity.CRITICAL, status=AlertStatus.ACTIVE).count(),
-            'high': Alert.objects.filter(severity=AlertSeverity.HIGH, status=AlertStatus.ACTIVE).count(),
-        }
-
-
 class WeatherAlertService:
     """
     Service for generating weather-based infrastructure alerts.
@@ -229,12 +86,15 @@ class WeatherAlertService:
         if infra.risk_score >= cls.CRITICAL_RISK_THRESHOLD:
             severity = 'critical'
             title_prefix = 'CRITICAL DISRUPTION RISK'
+            recommended_action = 'Immediate detour recommended. Dispatch ground team for road stability assessment.'
         elif infra.risk_score >= cls.HIGH_RISK_THRESHOLD:
             severity = 'high'
             title_prefix = 'High Disruption Risk'
+            recommended_action = 'Exercise high caution. Reduce convoy speed and monitor real-time road conditions.'
         else:
             severity = 'medium'
             title_prefix = 'Moderate Disruption Risk'
+            recommended_action = 'Drive with caution. Vulnerable to degradation during precipitation.'
         
         # Build description from risk factors
         description_parts = [
@@ -269,6 +129,7 @@ class WeatherAlertService:
             'severity': severity,
             'title': f'{title_prefix} — {infra.name}',
             'description': ' '.join(description_parts),
+            'recommended_action': recommended_action,
             'infrastructure_id': infra.id,
             'infrastructure_name': infra.name,
             'location': location,
@@ -303,6 +164,7 @@ class WeatherAlertService:
                     'title': f'Extreme Rainfall Alert — {district.name}',
                     'description': f'Extreme rainfall of {latest_weather.rainfall_mm}mm recorded in past 24 hours. '
                                    f'Severe disruption risk for all road segments in the district.',
+                    'recommended_action': 'Suspend non-essential logistics movement. Prepare landslide and flood hazard protocols.',
                     'district_id': district.id,
                     'district_name': district.name,
                     'rainfall_mm': latest_weather.rainfall_mm,
@@ -318,6 +180,7 @@ class WeatherAlertService:
                     'title': f'Heavy Rainfall Advisory — {district.name}',
                     'description': f'Heavy rainfall of {latest_weather.rainfall_mm}mm recorded in past 24 hours. '
                                    f'Increased disruption risk on vulnerable road segments.',
+                    'recommended_action': 'Monitor route accessibility. Field teams should verify road passability.',
                     'district_id': district.id,
                     'district_name': district.name,
                     'rainfall_mm': latest_weather.rainfall_mm,
@@ -334,6 +197,7 @@ class WeatherAlertService:
                     'severity': 'high',
                     'title': f'Weather Warning — {district.name}',
                     'description': latest_weather.warning_details or 'Official weather warning in effect for this district.',
+                    'recommended_action': 'Adhere to official district administration and IMD safety advisories.',
                     'district_id': district.id,
                     'district_name': district.name,
                     'warning_details': latest_weather.warning_details,
@@ -377,4 +241,164 @@ class WeatherAlertService:
                 'medium': medium_count,
             },
             'generated_at': timezone.now().isoformat(),
+        }
+
+
+class AlertService(WeatherAlertService):
+    """
+    Service for generating and persisting infrastructure and weather alerts (Phase 8).
+    Inherits alert generation rules from WeatherAlertService and adds database persistence.
+    """
+    
+    @classmethod
+    def generate_and_persist_alerts(cls) -> Dict[str, Any]:
+        """
+        Generate alerts from current conditions and persist to database.
+        Returns summary of created alerts.
+        """
+        infra_alerts = cls.generate_infrastructure_alerts()
+        weather_alerts = cls.generate_weather_alerts()
+        
+        created_count = 0
+        for alert_data in infra_alerts + weather_alerts:
+            if cls._persist_alert(alert_data):
+                created_count += 1
+        
+        return {
+            'total_generated': len(infra_alerts) + len(weather_alerts),
+            'persisted': created_count,
+            'infrastructure_alerts': len(infra_alerts),
+            'weather_alerts': len(weather_alerts),
+        }
+    
+    @classmethod
+    def _persist_alert(cls, alert_data: Dict[str, Any]) -> bool:
+        """
+        Persist a single alert to database.
+        Returns True if created, False if already exists or error.
+        """
+        try:
+            alert_id = alert_data.get('alert_id')
+            
+            # Check if alert already exists
+            existing = Alert.objects.filter(alert_id=alert_id, status=AlertStatus.ACTIVE).first()
+            if existing:
+                return False
+            
+            # Parse severity
+            severity_map = {
+                'critical': AlertSeverity.CRITICAL,
+                'high': AlertSeverity.HIGH,
+                'medium': AlertSeverity.MEDIUM,
+                'low': AlertSeverity.LOW,
+            }
+            severity = severity_map.get(alert_data.get('severity', 'medium'), AlertSeverity.MEDIUM)
+            
+            # Parse alert type
+            type_map = {
+                'infrastructure_risk': AlertType.INFRASTRUCTURE_RISK,
+                'extreme_weather': AlertType.EXTREME_WEATHER,
+                'heavy_rainfall': AlertType.HEAVY_RAINFALL,
+                'weather_warning': AlertType.WEATHER_WARNING,
+                'flood_detection': AlertType.FLOOD_DETECTION,
+                'landslide_warning': AlertType.LANDSLIDE_WARNING,
+                'road_blockage': AlertType.ROAD_BLOCKAGE,
+                'delivery_delay': AlertType.DELIVERY_DELAY,
+            }
+            alert_type = type_map.get(alert_data.get('type', 'infrastructure_risk'), AlertType.INFRASTRUCTURE_RISK)
+            
+            # Get related entities
+            infra = None
+            district = None
+            if alert_data.get('infrastructure_id'):
+                infra = Infrastructure.objects.filter(id=alert_data['infrastructure_id']).first()
+                if infra:
+                    district = infra.district
+            elif alert_data.get('district_id'):
+                district = District.objects.filter(id=alert_data['district_id']).first()
+
+            # Get location
+            location = None
+            if alert_data.get('location'):
+                from django.contrib.gis.geos import Point
+                loc = alert_data['location']
+                location = Point(loc['lng'], loc['lat'], srid=4326)
+            elif district and district.geom:
+                from django.contrib.gis.geos import Point
+                pt = district.geom.point_on_surface or district.geom.centroid
+                if pt:
+                    location = Point(pt.x, pt.y, srid=4326)
+            
+            Alert.objects.create(
+                alert_id=alert_id,
+                alert_type=alert_type,
+                severity=severity,
+                status=AlertStatus.ACTIVE,
+                title=alert_data.get('title', ''),
+                description=alert_data.get('description', ''),
+                recommended_action=alert_data.get('recommended_action', ''),
+                location=location,
+                infrastructure=infra,
+                district=district,
+                risk_score=alert_data.get('risk_score'),
+                risk_level=alert_data.get('risk_level', ''),
+                disruption_probability=alert_data.get('disruption_probability'),
+                rainfall_mm=alert_data.get('rainfall_mm'),
+                generated_by='system',
+            )
+            return True
+        except Exception as e:
+            logger.error(f"Failed to persist alert: {e}", exc_info=True)
+            return False
+    
+    @classmethod
+    def get_active_alerts(cls, lat=None, lng=None, radius_m=50000) -> List[Alert]:
+        """
+        Get active alerts from database, optionally filtered by proximity.
+        """
+        qs = Alert.objects.filter(status=AlertStatus.ACTIVE)
+        
+        if lat is not None and lng is not None:
+            from django.contrib.gis.geos import Point
+            from django.contrib.gis.measure import D
+            point = Point(lng, lat, srid=4326)
+            qs = qs.filter(location__dwithin=(point, D(m=radius_m)))
+        
+        return list(qs)
+    
+    @classmethod
+    def acknowledge_alert(cls, alert_id: str, user) -> bool:
+        """Acknowledge an alert."""
+        try:
+            alert = Alert.objects.get(alert_id=alert_id)
+            alert.status = AlertStatus.ACKNOWLEDGED
+            alert.acknowledged_at = timezone.now()
+            alert.assigned_to = user
+            alert.save()
+            return True
+        except Alert.DoesNotExist:
+            return False
+    
+    @classmethod
+    def resolve_alert(cls, alert_id: str) -> bool:
+        """Resolve an alert."""
+        try:
+            alert = Alert.objects.get(alert_id=alert_id)
+            alert.status = AlertStatus.RESOLVED
+            alert.resolved_at = timezone.now()
+            alert.save()
+            return True
+        except Alert.DoesNotExist:
+            return False
+    
+    @classmethod
+    def get_alert_summary(cls) -> Dict[str, Any]:
+        """Get summary counts by severity and status."""
+        return {
+            'total': Alert.objects.count(),
+            'active': Alert.objects.filter(status=AlertStatus.ACTIVE).count(),
+            'acknowledged': Alert.objects.filter(status=AlertStatus.ACKNOWLEDGED).count(),
+            'resolved': Alert.objects.filter(status=AlertStatus.RESOLVED).count(),
+            'critical': Alert.objects.filter(severity=AlertSeverity.CRITICAL, status=AlertStatus.ACTIVE).count(),
+            'high': Alert.objects.filter(severity=AlertSeverity.HIGH, status=AlertStatus.ACTIVE).count(),
         }
