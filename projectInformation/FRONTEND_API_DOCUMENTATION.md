@@ -95,17 +95,87 @@ Authorization: Bearer <access_token>
 ### 2.3 User Registration
 * **Endpoint:** `POST /api/v1/accounts/register/`
 * **Access:** Public
+* **Allowed Roles:** `normal_user` (Driver), `field_officer` — **`admin` role is blocked from public registration**
 * **Request:**
 ```json
 {
-  "username": "officer_jorabat",
-  "email": "officer_jorabat@sih.gov.in",
+  "username": "driver_raju",
+  "email": "raju@example.com",
   "password": "Password123!",
-  "first_name": "Karan",
-  "last_name": "Barman",
-  "role": "field_officer",
+  "first_name": "Raju",
+  "last_name": "Sharma",
+  "role": "normal_user",
   "phone": "+919876543210",
-  "department": "PWD Assam"
+  "department": "Logistics & Transport"
+}
+```
+* **Driver Registration — Success Response (`201 Created`):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": 42,
+    "username": "driver_raju",
+    "email": "raju@example.com",
+    "profile": {
+      "role": "normal_user",
+      "approval_status": "approved",
+      "approval_status_display": "Approved"
+    }
+  },
+  "message": "User registered successfully.",
+  "status_code": 201
+}
+```
+* **Field Officer Registration — Success Response (`201 Created`):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": 43,
+    "username": "fo_karan",
+    "profile": {
+      "role": "field_officer",
+      "approval_status": "pending",
+      "approval_status_display": "Pending Approval"
+    }
+  },
+  "message": "Registration successful. Your Field Officer account is pending admin approval. You will be able to log in once approved.",
+  "status_code": 201
+}
+```
+* **Duplicate Username Error (`400`):**
+```json
+{
+  "success": false,
+  "errors": {
+    "username": [{ "message": "Username 'raju' is already taken.", "suggestions": ["raju_3k", "raju_7x", "raju_q2"] }]
+  }
+}
+```
+* **Duplicate Email Error (`400`):**
+```json
+{
+  "success": false,
+  "errors": {
+    "email": ["An account with this email address already exists. Please use a different email or log in."]
+  }
+}
+```
+* **Duplicate Phone Error (`400`):**
+```json
+{
+  "success": false,
+  "errors": {
+    "phone": ["This phone number is already registered with another account."]
+  }
+}
+```
+* **Admin Role Blocked (`400`):**
+```json
+{
+  "success": false,
+  "errors": { "role": ["\"admin\" is not a valid choice."] }
 }
 ```
 
@@ -127,6 +197,8 @@ Authorization: Bearer <access_token>
     "profile": {
       "role": "admin",
       "role_display": "Admin",
+      "approval_status": "approved",
+      "approval_status_display": "Approved",
       "phone": "+919876543210",
       "department": "PWD",
       "created_at": "2026-09-22T16:00:00Z",
@@ -140,9 +212,14 @@ Authorization: Bearer <access_token>
 
 ### 2.5 List All Users & Roles (Admin Only)
 * **Endpoint:** `GET /api/v1/accounts/users/`
-* **Query Params:** `?role=admin|field_officer|normal_user`, `?search=rahul`
+* **Query Params:**
+  - `?role=admin|field_officer|normal_user`
+  - `?approval_status=pending|approved|rejected` ← **new filter**
+  - `?search=<username or email>`
 * **Access:** Admin only (`IsAdminRole`)
-* **Response (`200 OK`):** Array of all users, their profiles, roles, and staff status.
+* **Response (`200 OK`):** Array of all users, their profiles, roles, approval status, and staff status.
+* **Example — get all pending Field Officers:**
+  `GET /api/v1/accounts/users/?role=field_officer&approval_status=pending`
 
 ### 2.6 Update User Role & Permissions (Admin Only)
 * **Endpoint:** `PATCH /api/v1/accounts/users/<user_id>/role/`
@@ -158,7 +235,59 @@ Authorization: Bearer <access_token>
 ```
 * **Response (`200 OK`):** Returns updated User object with updated Profile.
 
-### 2.7 Bulk Synchronize All User Roles (Admin Only)
+### 2.7 Approve / Reject Field Officer (Admin Only) ⭐ NEW
+* **Endpoint:** `PATCH /api/v1/accounts/users/<user_id>/approve/`
+* **Access:** Admin only
+* **Purpose:** Approve or reject a Field Officer account that registered and is in `pending` status.
+* **Request:**
+```json
+{ "action": "approve" }
+```
+or
+```json
+{ "action": "reject" }
+```
+* **Approve Response (`200 OK`):**
+```json
+{
+  "success": true,
+  "data": { "profile": { "approval_status": "approved" } },
+  "message": "Field Officer 'fo_karan' has been approved and can now log in."
+}
+```
+* **Reject Response (`200 OK`):**
+```json
+{
+  "success": true,
+  "data": { "profile": { "approval_status": "rejected" } },
+  "message": "Field Officer 'fo_karan' registration has been rejected."
+}
+```
+* **Invalid action (`400`):** `{ "message": "Invalid action. Use 'approve' or 'reject'." }`
+* **Non-FO user (`400`):** `{ "message": "Approval flow applies only to Field Officer accounts." }`
+
+### 2.8 Login — Pending/Rejected Block
+* **Endpoint:** `POST /api/v1/accounts/login/`
+* **Pending FO tries to login (`400`):**
+```json
+{
+  "success": false,
+  "errors": {
+    "non_field_errors": ["Your account is pending admin approval. You will be notified once access is granted."]
+  }
+}
+```
+* **Rejected FO tries to login (`400`):**
+```json
+{
+  "success": false,
+  "errors": {
+    "non_field_errors": ["Your account registration was rejected by the administrator. Please contact support for more information."]
+  }
+}
+```
+
+### 2.9 Bulk Synchronize All User Roles (Admin Only)
 * **Endpoint:** `POST /api/v1/accounts/sync-roles/`
 * **Access:** Admin only
 * **Response (`200 OK`):**

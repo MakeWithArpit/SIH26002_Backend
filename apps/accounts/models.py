@@ -3,15 +3,28 @@ from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
+
 class Role(models.TextChoices):
     ADMIN = 'admin', 'Admin'
     FIELD_OFFICER = 'field_officer', 'Field Officer'
     NORMAL_USER = 'normal_user', 'Normal User'
 
+
+class ApprovalStatus(models.TextChoices):
+    PENDING = 'pending', 'Pending Approval'
+    APPROVED = 'approved', 'Approved'
+    REJECTED = 'rejected', 'Rejected'
+
+
 class Profile(models.Model):
     """
     Profile extension for the Django User model as specified in the PRD.
-    Stores role, phone, and metadata.
+    Stores role, approval status, phone, and metadata.
+
+    approval_status lifecycle:
+      - normal_user  → always APPROVED on register
+      - field_officer → PENDING on register, admin must approve before login is allowed
+      - admin        → created only via Django admin panel, always APPROVED
     """
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     role = models.CharField(
@@ -19,6 +32,12 @@ class Profile(models.Model):
         choices=Role.choices,
         default=Role.NORMAL_USER,
         db_index=True
+    )
+    approval_status = models.CharField(
+        max_length=20,
+        choices=ApprovalStatus.choices,
+        default=ApprovalStatus.APPROVED,
+        db_index=True,
     )
     phone = models.CharField(max_length=20, blank=True, default='')
     department = models.CharField(max_length=100, blank=True, default='')
@@ -40,6 +59,10 @@ class Profile(models.Model):
     def is_normal_user(self):
         return self.role == Role.NORMAL_USER
 
+    @property
+    def is_approved(self):
+        return self.approval_status == ApprovalStatus.APPROVED
+
 
 @receiver(post_save, sender=User)
 def create_or_save_user_profile(sender, instance, created, **kwargs):
@@ -48,3 +71,4 @@ def create_or_save_user_profile(sender, instance, created, **kwargs):
     else:
         if hasattr(instance, 'profile'):
             instance.profile.save()
+
