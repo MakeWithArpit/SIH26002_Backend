@@ -201,3 +201,27 @@ class Phase4VehiclesAndETATests(TestCase):
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         data = res.json()['data']
         self.assertGreater(data['base_eta_minutes'], 0.0)
+    
+    def test_location_ping_ownership_validation(self):
+        """
+        Only the assigned driver can ping a vehicle.
+        Another authenticated user should receive 403 FORBIDDEN.
+        """
+        other_driver = User.objects.create_user(username='other_driver', password='Password123!')
+        other_driver.profile.role = Role.NORMAL_USER
+        other_driver.profile.save()
+        
+        self.client.force_authenticate(user=other_driver)
+        now_ts = timezone.now()
+        payload = {
+            'lat': 26.1445,
+            'lng': 91.7362,
+            'speed': 38.5,
+            'timestamp': now_ts.isoformat(),
+        }
+        url = f'/api/v1/vehicles/{self.vehicle.id}/locations/'
+        res = self.client.post(url, payload, format='json')
+        
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertFalse(res.json()['success'])
+        self.assertIn('not authorized', res.json()['message'].lower())

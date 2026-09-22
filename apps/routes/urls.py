@@ -17,4 +17,10 @@ urlpatterns = [
     path('calculate/', CalculateRouteView.as_view(), name='calculate-route'),
     path('simulate-pipeline/', SimulatePipelineView.as_view(), name='simulate-pipeline'),
     path('alerts/', AlertsView.as_view(), name='alerts'),
+    
+    # Phase 6: Weather Intelligence Endpoints
+    path('weather/sync/', trigger_weather_sync, name='trigger-weather-sync'),
+    path('weather/sync-and-update-risk/', trigger_weather_risk_pipeline, name='trigger-weather-risk-pipeline'),
+    path('weather/latest/', get_latest_weather, name='get-latest-weather'),
+    path('weather/districts/<int:district_id>/history/', get_district_weather_history, name='district-weather-history'),
 ] + router.urls

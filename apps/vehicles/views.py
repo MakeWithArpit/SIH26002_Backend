@@ -48,8 +48,17 @@ class VehicleViewSet(viewsets.ModelViewSet):
         """
         Ingests REST location ping from driver mobile app.
         Atomically saves historical LocationPing and updates cached Vehicle fields.
+        Only the assigned driver can ping their vehicle.
         """
         vehicle = self.get_object()
+        
+        if vehicle.driver != request.user:
+            return standard_response(
+                success=False,
+                message="You are not authorized to ping this vehicle.",
+                status_code=status.HTTP_403_FORBIDDEN,
+            )
+        
         serializer = LocationPingCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         vdata = serializer.validated_data

@@ -7,7 +7,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 
-from apps.common.responses import success_response, error_response
+from apps.common.responses import standard_response
 from apps.routes.models import District, WeatherSnapshot
 from apps.routes.services.weather.service import WeatherService
 from apps.routes.tasks import sync_weather_task, sync_weather_and_update_risk_task
@@ -38,8 +38,7 @@ def trigger_weather_sync(request):
     """
     try:
         task = sync_weather_task.delay()
-        
-        return success_response(
+        return standard_response(
             data={
                 'task_id': task.id,
                 'status': 'queued',
@@ -50,9 +49,9 @@ def trigger_weather_sync(request):
         )
     except Exception as e:
         logger.error("Failed to queue weather sync task: %s", e, exc_info=True)
-        return error_response(
+        return standard_response(
             message="Failed to queue weather synchronization task",
-            errors={'error': str(e)},
+            success=False,
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
@@ -79,8 +78,7 @@ def trigger_weather_risk_pipeline(request):
     """
     try:
         task = sync_weather_and_update_risk_task.delay()
-        
-        return success_response(
+        return standard_response(
             data={
                 'task_id': task.id,
                 'status': 'queued',
@@ -91,9 +89,9 @@ def trigger_weather_risk_pipeline(request):
         )
     except Exception as e:
         logger.error("Failed to queue weather-risk pipeline task: %s", e, exc_info=True)
-        return error_response(
+        return standard_response(
             message="Failed to queue integrated pipeline task",
-            errors={'error': str(e)},
+            success=False,
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
@@ -134,7 +132,7 @@ def get_latest_weather(request):
                 'recorded_at': latest.recorded_at,
             })
     
-    return success_response(
+    return standard_response(
         data={
             'count': len(weather_data),
             'weather_snapshots': weather_data,
@@ -164,8 +162,9 @@ def get_district_weather_history(request, district_id):
     try:
         district = District.objects.get(id=district_id)
     except District.DoesNotExist:
-        return error_response(
+        return standard_response(
             message=f"District with ID {district_id} not found",
+            success=False,
             status_code=status.HTTP_404_NOT_FOUND
         )
     
@@ -190,7 +189,7 @@ def get_district_weather_history(request, district_id):
             'created_at': snapshot.created_at,
         })
     
-    return success_response(
+    return standard_response(
         data={
             'district_id': district.id,
             'district_name': district.name,
